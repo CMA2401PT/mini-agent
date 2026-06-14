@@ -1,6 +1,4 @@
-// Package openai implements the core.Provider interface for the DeepSeek
-// (and OpenAI-compatible) chat completions API.
-package openai
+package openrouter
 
 import (
 	"bufio"
@@ -9,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/url"
 	"sort"
 	"strings"
 	"time"
@@ -21,50 +18,36 @@ import (
 // Config
 // ============================================================================
 
-const defaultMaxTokens = 8192
-
-// Config configures the DeepSeek (or OpenAI-compatible) provider.
 type Config struct {
-	BaseURL string // API endpoint，default https://api.deepseek.com
+	BaseURL string
 	APIKey  string
-	Model   string // model name，default deepseek-chat
-	// Effort controls reasoning depth. Valid values:
-	//   DeepSeek: "high" or "max" (default "high")
-	//   OpenAI-compatible (non-DeepSeek): "low", "medium", "high"
-	//   ""  → disabled
-	Effort string
-	Name   string
+	Model   string
+	Effort  string
+	Name    string
 }
 
-// New creates a core.Provider from Config.
+var validEfforts = map[string]bool{
+	"xhigh": true, "high": true, "medium": true, "low": true, "minimal": true, "none": true,
+}
+
+const defaultMaxTokens = 8192
+
 func New(cfg Config) (core.Provider, error) {
 	if cfg.BaseURL == "" {
-		cfg.BaseURL = "https://api.deepseek.com"
+		cfg.BaseURL = "https://openrouter.ai/api/v1"
+	}
+	if cfg.APIKey == "" {
+		return nil, fmt.Errorf("openrouter: api_key is required")
 	}
 	if cfg.Model == "" {
-		cfg.Model = "deepseek-chat"
+		return nil, fmt.Errorf("openrouter: model is required")
 	}
 
-	deepseek := isDeepSeek(cfg.BaseURL)
 	effort := strings.ToLower(strings.TrimSpace(cfg.Effort))
-
-	if deepseek {
-		switch effort {
-		case "off", "":
-			effort = "" // explicitly disabled
-		case "high", "max":
-		default:
-			return nil, fmt.Errorf("openai: deepseek effort must be high or max, got %q", effort)
-		}
-	} else if !deepseek {
-		switch effort {
-		case "max":
-			effort = "high"
-		case "low", "medium", "high":
-		default:
-			return nil, fmt.Errorf("openai: effort must be low, medium, or high for non-DeepSeek, got %q", effort)
-		}
+	if effort != "" && !validEfforts[effort] {
+		return nil, fmt.Errorf("openrouter: effort must be xhigh, high, medium, low, minimal, or none, got %q", cfg.Effort)
 	}
+
 	name := cfg.Name
 	if name == "" {
 		if effort == "" {
@@ -72,33 +55,25 @@ func New(cfg Config) (core.Provider, error) {
 		} else {
 			name = fmt.Sprintf("%s (%s)", cfg.Model, cfg.Effort)
 		}
-
 	}
 
 	return &provider{
-		cfg:      cfg,
-		effort:   effort,
-		deepseek: deepseek,
-		http:     &http.Client{Timeout: 5 * time.Minute},
-		name:     name,
+		cfg:    cfg,
+		effort: effort,
+		http:   &http.Client{Timeout: 5 * time.Minute},
+		name:   name,
 	}, nil
 }
 
-func isDeepSeek(baseURL string) bool {
-	u, err := url.Parse(baseURL)
-	if err != nil {
-		return false
-	}
-	host := strings.ToLower(u.Hostname())
-	return host == "api.deepseek.com" || strings.HasSuffix(host, ".deepseek.com")
-}
+// ============================================================================
+// Provider
+// ============================================================================
 
 type provider struct {
-	cfg      Config
-	effort   string // reasoning_effort to send; "" = omit
-	deepseek bool   // set thinking.type=enabled for DeepSeek
-	http     *http.Client
-	name     string
+	cfg    Config
+	effort string
+	http   *http.Client
+	name   string
 }
 
 func (p *provider) Name() string {
@@ -158,20 +133,14 @@ func (p *provider) buildBody(req core.Request) ([]byte, error) {
 		}
 	}
 	r := wireRequest{
-		Model:           p.cfg.Model,
-		Messages:        msgs,
-		Tools:           tools,
-		Stream:          true,
-		StreamOptions:   &wireStreamOpts{IncludeUsage: true},
-		ReasoningEffort: p.effort,
+		Model:         p.cfg.Model,
+		Messages:      msgs,
+		Tools:         tools,
+		Stream:        true,
+		StreamOptions: &wireStreamOpts{IncludeUsage: true},
 	}
-	if p.deepseek {
-		if p.effort != "" {
-			r.Thinking = &wireThinking{Type: "enabled"}
-		} else {
-			r.Thinking = &wireThinking{Type: "disabled"}
-		}
-
+	if p.effort != "" {
+		r.Reasoning = &wireReasoning{Effort: p.effort}
 	}
 	if req.Temperature != 0 {
 		r.Temperature = req.Temperature
@@ -266,14 +235,14 @@ func (p *provider) parseSSE(ctx context.Context, resp *http.Response, out chan<-
 		}
 
 		for _, c := range sr.Choices {
-			delta := c.Delta
 			if len(sr.Choices) != 1 {
 				panic(fmt.Sprintf("multiple choices in stream response: %d", len(sr.Choices)))
 			}
-			if delta.ReasoningContent != "" || delta.Content != "" {
+			delta := c.Delta
+			if delta.Reasoning != "" || delta.Content != "" {
 				out <- core.Chunk{
 					Text:      delta.Content,
-					Reasoning: delta.ReasoningContent,
+					Reasoning: delta.Reasoning,
 				}
 			}
 			for _, tc := range delta.ToolCalls {
@@ -310,23 +279,22 @@ func (p *provider) parseSSE(ctx context.Context, resp *http.Response, out chan<-
 }
 
 // ============================================================================
-// OpenAI wire types (package-private)
+// Wire types
 // ============================================================================
 
 type wireRequest struct {
-	Model           string          `json:"model"`
-	Messages        []wireMessage   `json:"messages"`
-	Tools           []wireTool      `json:"tools,omitempty"`
-	Stream          bool            `json:"stream"`
-	StreamOptions   *wireStreamOpts `json:"stream_options,omitempty"`
-	Temperature     float64         `json:"temperature,omitempty"`
-	MaxTokens       int             `json:"max_tokens,omitempty"`
-	ReasoningEffort string          `json:"reasoning_effort,omitempty"`
-	Thinking        *wireThinking   `json:"thinking,omitempty"`
+	Model         string          `json:"model"`
+	Messages      []wireMessage   `json:"messages"`
+	Tools         []wireTool      `json:"tools,omitempty"`
+	Stream        bool            `json:"stream"`
+	StreamOptions *wireStreamOpts `json:"stream_options,omitempty"`
+	Temperature   float64         `json:"temperature,omitempty"`
+	MaxTokens     int             `json:"max_tokens,omitempty"`
+	Reasoning     *wireReasoning  `json:"reasoning,omitempty"`
 }
 
-type wireThinking struct {
-	Type string `json:"type"`
+type wireReasoning struct {
+	Effort string `json:"effort"`
 }
 
 type wireStreamOpts struct {
@@ -368,9 +336,9 @@ type wireToolCall struct {
 type wireStreamResp struct {
 	Choices []struct {
 		Delta struct {
-			Content          string         `json:"content"`
-			ReasoningContent string         `json:"reasoning_content"`
-			ToolCalls        []wireToolCall `json:"tool_calls"`
+			Content   string         `json:"content"`
+			Reasoning string         `json:"reasoning"`
+			ToolCalls []wireToolCall `json:"tool_calls"`
 		} `json:"delta"`
 	} `json:"choices"`
 	Usage *struct {
