@@ -8,6 +8,7 @@ import (
 	"mini_agent/agent/conversation/plain"
 	"mini_agent/core"
 	"mini_agent/providers/openai"
+	"mini_agent/ui/tui/common"
 	"mini_agent/ui/tui/view_model/agent_interact"
 
 	tea "charm.land/bubbletea/v2"
@@ -51,19 +52,21 @@ func main() {
 		os.Exit(1)
 	}
 
-	m, interactStream := agent_interact.NewReadWriteModel(stream)
+	singleView, interactStream := agent_interact.NewSingleReadWrite()
+	model := newReadwriteModel(singleView, stream)
+
 	go func() {
 		for event := range interactStream {
 			switch e := event.(type) {
 			case agent_interact.UserQuit:
 				handle.LockCmds()
-				handle.SetCmds([]core.UserCommand{plain.EndConversationCommand{}})
+				handle.SetCmds([]core.UserCommand{core.EndConversationCommand{}})
 				handle.UnlockCmds()
 				handle.InterruptRunningCmd()
 			case agent_interact.UserInput:
 				handle.LockCmds()
 				cmds := handle.GetCmds()
-				cmds = append(cmds, plain.PromptInput{Prompt: e.Prompt, Provider: nil})
+				cmds = append(cmds, core.PromptInput{Prompt: e.Prompt, Provider: nil})
 				handle.SetCmds(cmds)
 				handle.UnlockCmds()
 			case agent_interact.UserInterrupt:
@@ -71,7 +74,8 @@ func main() {
 			}
 		}
 	}()
-	prog := tea.NewProgram(m)
+
+	prog := tea.NewProgram(&common.ModelWithAnimate[*readwriteModel]{Inner: model})
 
 	if _, err := prog.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)

@@ -15,6 +15,17 @@ type UserCommand interface {
 	UserCommand()
 }
 
+type PromptInput struct {
+	Prompt   string
+	Provider Provider
+}
+
+func (PromptInput) UserCommand() {}
+
+type EndConversationCommand struct{}
+
+func (EndConversationCommand) UserCommand() {}
+
 // ControlHandle 提供用户对  Conversation 的控制，
 // 通过 LockCmds & GetCmds & SetCmds & UnlockCmds 可以实现完全自由的对队列的控制
 type ControlHandle interface {

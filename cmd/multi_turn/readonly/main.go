@@ -8,6 +8,7 @@ import (
 	"mini_agent/agent/conversation/plain"
 	"mini_agent/core"
 	"mini_agent/providers/anthropic"
+	"mini_agent/ui/tui/common"
 	"mini_agent/ui/tui/view_model/agent_interact"
 
 	tea "charm.land/bubbletea/v2"
@@ -52,18 +53,21 @@ func main() {
 	}
 	cmds := make([]core.UserCommand, 0, len(commands)+1)
 	for _, text := range commands {
-		cmds = append(cmds, plain.PromptInput{
+		cmds = append(cmds, core.PromptInput{
 			Prompt: text, Provider: nil,
 		})
 	}
-	cmds = append(cmds, plain.EndConversationCommand{})
+	cmds = append(cmds, core.EndConversationCommand{})
 	_, stream, err := ctrl.Emit(ctx, cmds, nil)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	m := agent_interact.NewReadOnlyModel(stream, false)
-	prog := tea.NewProgram(m)
+
+	singleView := agent_interact.NewSingleReadOnly()
+	model := newReadonlyModel(singleView, stream, false)
+
+	prog := tea.NewProgram(&common.ModelWithAnimate[*readonlyModel]{Inner: model})
 
 	if _, err := prog.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)

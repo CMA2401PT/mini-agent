@@ -134,29 +134,30 @@ func (s *SelectionOverlay) Update(msg tea.Msg) (bool, tea.Cmd) {
 		if msg.Button == tea.MouseRight && s.Sel.Active && !s.Sel.Empty() {
 			text := s.selectedText()
 			s.Sel = Selection{}
-			return false, s.scheduleCopyNotice(text)
+			_, innerCmd := s.Inner.Update(msg)
+			return false, tea.Batch(innerCmd, s.scheduleCopyNotice(text))
 		} else if msg.Button == tea.MouseLeft && msg.Y < len(s.cachedLines) {
 			s.Sel = Selection{Active: true, Anchor: SelectPos{Line: msg.Y, Col: msg.X}, Head: SelectPos{Line: msg.Y, Col: msg.X}}
 		}
-		return false, nil
+		return s.Inner.Update(msg)
 
 	case tea.MouseMotionMsg:
 		if s.Sel.Active && msg.Y < len(s.cachedLines) {
 			s.Sel.Head = SelectPos{Line: msg.Y, Col: msg.X}
 		}
-		return false, nil
+		return s.Inner.Update(msg)
 
 	case tea.MouseReleaseMsg:
 		if msg.Button == tea.MouseLeft && s.Sel.Active {
 			if !s.Sel.Empty() {
 				text := s.selectedText()
 				s.Sel = Selection{}
-				return false, s.scheduleCopyNotice(text)
+				innerChanged, innerCmd := s.Inner.Update(msg)
+				return innerChanged, tea.Batch(innerCmd, s.scheduleCopyNotice(text))
 			}
 			s.Sel = Selection{}
-			return s.Inner.Update(msg)
 		}
-		return false, nil
+		return s.Inner.Update(msg)
 	}
 
 	return s.Inner.Update(msg)
