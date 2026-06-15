@@ -130,13 +130,13 @@ func (h *plainHandle) run(ctx context.Context, out chan<- core.ConversationOutpu
 		h.cmdMu.Unlock()
 
 		switch c := cmd.(type) {
-		case EndConversationCommand:
+		case core.EndConversationCommand:
 			out <- core.ConversationOutput{
 				BeforeEvent: core.KeyNotifyDone{},
 			}
 			return
 
-		case PromptInput:
+		case core.PromptInput:
 			p, t := h.provider, h.tools
 			if c.Provider != nil {
 				p = c.Provider

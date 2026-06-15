@@ -33,14 +33,31 @@ func (q UserInterrupt) UserInteract()  {}
 func (q UserInterrupt) String() string { return "UserInterrupt" }
 
 type SingleConversationView struct {
-	root        *common.StreamColumn
-	transcript  *transcript.Transcript
-	statusbar   *status_bar.StatusBar
-	promptInput *prompt_input.PromptInput
-	out         chan<- UserInteract
+	root           *common.StreamColumn
+	transcript     *transcript.Transcript
+	statusbar      *status_bar.StatusBar
+	promptInput    *prompt_input.PromptInput
+	onUserInteract func(UserInteract)
 }
 
-func NewSingleReadWrite() (*SingleConversationView, core.OutStream[UserInteract]) {
+func (v *SingleConversationView) Focus() tea.Cmd {
+	if v.promptInput != nil {
+		return v.root.Focus()
+	}
+	return nil
+}
+
+func (v *SingleConversationView) Blur() {
+	if v.promptInput != nil {
+		v.promptInput.Blur()
+	}
+}
+
+func (v *SingleConversationView) Phase() core.TurnPhase {
+	return v.statusbar.Phase
+}
+
+func NewSingleReadWrite(onUserInteract func(UserInteract)) *SingleConversationView {
 	tscript := transcript.NewTranscript(nil)
 
 	textArea := common.NewTextareaWidget(common.TextareaWidgetSizeConfig{
@@ -62,27 +79,28 @@ func NewSingleReadWrite() (*SingleConversationView, core.OutStream[UserInteract]
 	root := common.NewStreamColumn(tscript, common.NewVerticalSpacer(1), pInput, sbar)
 	root.FocusChild(2)
 
-	out := make(chan UserInteract)
-
 	v := &SingleConversationView{
-		root:        root,
-		transcript:  tscript,
-		statusbar:   sbar,
-		promptInput: pInput,
-		out:         out,
+		root:           root,
+		transcript:     tscript,
+		statusbar:      sbar,
+		promptInput:    pInput,
+		onUserInteract: onUserInteract,
 	}
 
 	pInput.OnEnter = func(prompt string) tea.Cmd {
-		return v.emit(UserInput{Prompt: prompt})
+		v.onUserInteract(UserInput{Prompt: prompt})
+		return nil
 	}
 	pInput.OnEmptyEnter = func() tea.Cmd {
-		return v.emit(UserQuit{})
+		v.onUserInteract(UserQuit{})
+		return nil
 	}
 	sbar.OnInterrupt = func() tea.Cmd {
-		return v.emit(UserInterrupt{})
+		v.onUserInteract(UserQuit{})
+		return nil
 	}
 
-	return v, out
+	return v
 }
 
 func NewSingleReadOnly() *SingleConversationView {
@@ -118,11 +136,4 @@ func (v *SingleConversationView) Update(msg tea.Msg) (bool, tea.Cmd) {
 		return v.transcript.Update(msg)
 	}
 	return v.root.Update(msg)
-}
-
-func (v *SingleConversationView) emit(event UserInteract) tea.Cmd {
-	return func() tea.Msg {
-		v.out <- event
-		return nil
-	}
 }

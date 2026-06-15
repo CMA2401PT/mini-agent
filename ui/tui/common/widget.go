@@ -17,3 +17,16 @@ type CanFocus interface {
 	Focus() tea.Cmd
 	Blur()
 }
+
+func Focus(v any) tea.Cmd {
+	if f, ok := v.(CanFocus); ok {
+		return f.Focus()
+	}
+	return nil
+}
+
+func Blur(v any) {
+	if f, ok := v.(CanFocus); ok {
+		f.Blur()
+	}
+}

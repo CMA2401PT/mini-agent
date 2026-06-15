@@ -4,12 +4,15 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	"mini_agent/agent/conversation/plain"
+	"mini_agent/agent/conversation/swarm"
 	"mini_agent/core"
 	"mini_agent/providers/openai"
 	"mini_agent/ui/tui/common"
 	"mini_agent/ui/tui/view_model/agent_interact"
+	"mini_agent/ui/tui/view_model/multi_conversation"
 
 	tea "charm.land/bubbletea/v2"
 )
@@ -32,9 +35,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
 	ctrl := &plain.PlainConversationCtrl{
 		InitSystemPrompt: []core.Turn{
 			{core.TextMsg{RoleName: "system", Content: "你是一个精准的助手。需要诚实的回答问题，如果遇到不清楚，不知道的消息，如实说自己不知道。"}},
@@ -46,27 +46,46 @@ func main() {
 		Tools:    runner,
 	}
 
-	handle, stream, err := ctrl.Emit(ctx, nil, nil)
+	s := swarm.NewSwarmController()
+	ctx := context.Background()
+
+	convID, err := s.StartConversation(ctx, nil, nil, ctrl)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		fmt.Fprintln(os.Stderr, "start initial conversation:", err)
 		os.Exit(1)
 	}
 
-	interactStream := make(core.OutStream[agent_interact.UserInteract], 64)
-	singleView := agent_interact.NewSingleReadWrite(func(ui agent_interact.UserInteract) {
-		interactStream <- ui
-	})
-	model := newReadwriteModel(singleView, stream)
-
+	interactStream := make(chan multi_conversation.TaggedUserInteract, 64)
+	model := NewModel(func(tui multi_conversation.TaggedUserInteract) {
+		interactStream <- tui
+	}, s.Output())
+	tabIdx := model.widget.CreateTab(convID, "开始")
+	// model.widget.SwitchTab(tabIdx)
+	convIdx := 0
+	prog := tea.NewProgram(&common.ModelWithAnimate[*MultiConversationModel]{Inner: model})
 	go func() {
+		prog.Send(SwitchTab(tabIdx))
 		for event := range interactStream {
-			switch e := event.(type) {
+			handle := s.GetInstance(event.ConvID)
+			switch e := event.UserInteract.(type) {
 			case agent_interact.UserQuit:
 				handle.LockCmds()
 				handle.SetCmds([]core.UserCommand{core.EndConversationCommand{}})
 				handle.UnlockCmds()
 				handle.InterruptRunningCmd()
 			case agent_interact.UserInput:
+				p := e.Prompt
+				if strings.HasPrefix(p, "/new") {
+					convID, err := s.StartConversation(ctx, nil, nil, ctrl)
+					if err != nil {
+						fmt.Fprintln(os.Stderr, "start initial conversation:", err)
+						os.Exit(1)
+					}
+					convIdx += 1
+					tabIdx := model.widget.CreateTab(convID, fmt.Sprintf("%d", convIdx))
+					prog.Send(SwitchTab(tabIdx))
+					continue
+				}
 				handle.LockCmds()
 				cmds := handle.GetCmds()
 				cmds = append(cmds, core.PromptInput{Prompt: e.Prompt, Provider: nil})
@@ -77,8 +96,6 @@ func main() {
 			}
 		}
 	}()
-
-	prog := tea.NewProgram(&common.ModelWithAnimate[*readwriteModel]{Inner: model})
 
 	if _, err := prog.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)

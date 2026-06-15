@@ -1,6 +1,8 @@
 package common
 
-import tea "charm.land/bubbletea/v2"
+import (
+	tea "charm.land/bubbletea/v2"
+)
 
 type TabItem[W StreamWidget] struct {
 	Widget W
@@ -44,14 +46,19 @@ func (tv *TabView[W]) ActiveItem() *TabItem[W] {
 	return tv.Items[tv.ActiveIdx]
 }
 
-func (tv *TabView[W]) SwitchTo(idx int) {
+func (tv *TabView[W]) SwitchTo(idx int) (bool, tea.Cmd) {
+	if item := tv.ActiveItem(); item != nil {
+		Blur(item.Widget)
+	}
 	if idx < 0 || idx >= len(tv.Items) || idx == tv.ActiveIdx {
-		return
+		return false, nil
 	}
 	tv.ActiveIdx = idx
-	if item := tv.ActiveItem(); item != nil && tv.Width > 0 && tv.Height > 0 {
-		item.Widget.Update(tea.WindowSizeMsg{Width: tv.Width, Height: tv.Height})
+	if item := tv.ActiveItem(); item != nil {
+		remeasure, cmd := item.Widget.Update(tea.WindowSizeMsg{Width: tv.Width, Height: tv.Height})
+		return remeasure, tea.Batch(cmd, Focus(item))
 	}
+	return false, nil
 }
 
 func (tv *TabView[W]) Measure(width int) StreamWidgetHeight {
@@ -66,15 +73,26 @@ func (tv *TabView[W]) Render() string {
 }
 
 func (tv *TabView[W]) Update(msg tea.Msg) (bool, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		tv.Width = msg.Width
+		tv.Height = msg.Height
+	}
 	if item := tv.ActiveItem(); item != nil {
 		return item.Widget.Update(msg)
 	}
 	return false, nil
 }
 
-func (tv *TabView[W]) UpdateItem(idx int, msg tea.Msg) (bool, tea.Cmd) {
-	if idx < 0 || idx >= len(tv.Items) {
-		return false, nil
+func (tv *TabView[W]) Focus() tea.Cmd {
+	if item := tv.ActiveItem(); item != nil {
+		return Focus(item.Widget)
 	}
-	return tv.Items[idx].Widget.Update(msg)
+	return nil
+}
+
+func (tv *TabView[W]) Blur() {
+	if item := tv.ActiveItem(); item != nil {
+		Blur(item.Widget)
+	}
 }

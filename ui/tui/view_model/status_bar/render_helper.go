@@ -72,13 +72,13 @@ func (h *statusBarRenderHelper) statusWidget() *common.TextBlock {
 			text += " · 回车发送 · ctrl+c 退出"
 		}
 		return common.NewTextBlock(text, mutedStatusStyle, nil)
-	} else if h.bar.phase == core.TurnPhaseWaitingInput {
+	} else if h.bar.Phase == core.TurnPhaseWaitingInput {
 		text := " · 等待输入"
 		if !h.bar.ReadOnly {
 			text += " · 回车发送 · ctrl+c 退出"
 		}
 		return common.NewTextBlock(text, mutedStatusStyle, nil)
-	} else if h.bar.phase == core.TurnPhaseFinished {
+	} else if h.bar.Phase == core.TurnPhaseFinished {
 		text := " ✓ 完成"
 		if !h.bar.ReadOnly {
 			text += " · 回车发送 · ctrl+c 退出"
@@ -86,7 +86,7 @@ func (h *statusBarRenderHelper) statusWidget() *common.TextBlock {
 		return common.NewTextBlock(text, mutedStatusStyle, nil)
 	}
 	spin := common.SpinnerFrame(statusSpinnerFrames, h.bar.spinner, accentStatusStyle)
-	text := "  " + spin + " " + h.bar.phase.String()
+	text := "  " + spin + " " + h.bar.Phase.String()
 	if h.bar.running && !h.bar.ReadOnly {
 		if h.bar.escCount == 1 {
 			text += " · 再次按下 esc 以打断"

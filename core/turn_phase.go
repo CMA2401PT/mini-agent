@@ -9,6 +9,7 @@ const (
 	TurnPhaseOutput
 	TurnPhaseTool
 	TurnPhaseFinished
+	TurnPhaseFailure
 )
 
 func (p TurnPhase) String() string {
@@ -25,6 +26,8 @@ func (p TurnPhase) String() string {
 		return "工具调用"
 	case TurnPhaseFinished:
 		return "完成"
+	case TurnPhaseFailure:
+		return "出现错误"
 	default:
 		return "未知状态"
 	}

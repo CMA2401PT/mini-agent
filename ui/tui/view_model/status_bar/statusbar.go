@@ -13,7 +13,7 @@ import (
 )
 
 type StatusBar struct {
-	phase                         core.TurnPhase
+	Phase                         core.TurnPhase
 	running                       bool
 	errText                       string
 	escCount                      int
@@ -29,7 +29,7 @@ type StatusBar struct {
 }
 
 func NewStatusBar() *StatusBar {
-	return &StatusBar{phase: core.TurnPhaseWaitingInput}
+	return &StatusBar{Phase: core.TurnPhaseWaitingInput}
 }
 
 func (s *StatusBar) Measure(width int) common.StreamWidgetHeight {
@@ -57,7 +57,7 @@ func (s *StatusBar) Update(msg tea.Msg) (bool, tea.Cmd) {
 			return false, s.handleEsc()
 		}
 	case common.AnimationTickMsg:
-		if !s.running || s.phase == core.TurnPhaseWaitingInput || s.phase == core.TurnPhaseFinished {
+		if !s.running || s.Phase == core.TurnPhaseWaitingInput || s.Phase == core.TurnPhaseFinished {
 			return false, nil
 		}
 		s.spinner = (s.spinner + 1) % len(statusSpinnerFrames)
@@ -94,39 +94,39 @@ func (s *StatusBar) consumeKeyNotify(event core.KeyNotify) {
 	switch e := event.(type) {
 	case core.KeyNotifyRequestSent:
 		s.running = true
-		s.phase = core.TurnPhaseRequesting
+		s.Phase = core.TurnPhaseRequesting
 		s.errText = ""
 		s.escCount = 0
 	case core.KeyNotifyReasoningStart:
 		s.running = true
-		s.phase = core.TurnPhaseReasoning
+		s.Phase = core.TurnPhaseReasoning
 	case core.KeyNotifyOutputStart:
 		s.running = true
-		s.phase = core.TurnPhaseOutput
+		s.Phase = core.TurnPhaseOutput
 	case core.KeyNotifyToolUseStart, core.KeyNotifyToolUseEnd:
 		s.running = true
-		s.phase = core.TurnPhaseTool
+		s.Phase = core.TurnPhaseTool
 	case core.KeyNotifyTurnEnd:
 		s.running = false
-		s.phase = core.TurnPhaseFinished
+		s.Phase = core.TurnPhaseFinished
 		s.escCount = 0
 	case core.KeyNotifyWaitiningPrompt:
 		s.running = false
-		s.phase = core.TurnPhaseWaitingInput
+		s.Phase = core.TurnPhaseWaitingInput
 		s.escCount = 0
 	case core.KeyNotifyDone:
 		s.running = false
-		s.phase = core.TurnPhaseFinished
+		s.Phase = core.TurnPhaseFinished
 		s.escCount = 0
 	case core.KeyNotifyTurnInterrupted:
 		s.running = false
-		s.phase = core.TurnPhaseFinished
+		s.Phase = core.TurnPhaseWaitingInput
 		s.errText = " · 已打断当前输出"
 		s.escCount = 0
 		s.suppressFailureAfterInterrupt = true
 	case core.KeyNotifyFailure:
 		s.running = false
-		s.phase = core.TurnPhaseFinished
+		s.Phase = core.TurnPhaseFailure
 		s.escCount = 0
 		if e.Err != nil {
 			if errors.Is(e.Err, context.Canceled) {

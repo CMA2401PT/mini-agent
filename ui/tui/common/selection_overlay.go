@@ -38,6 +38,14 @@ func (s *SelectionOverlay) Measure(width int) StreamWidgetHeight {
 	return s.Inner.Measure(width)
 }
 
+func (s *SelectionOverlay) Focus() tea.Cmd {
+	return Focus(s.Inner)
+}
+
+func (s *SelectionOverlay) Blur() {
+	Blur(s.Inner)
+}
+
 func (s *SelectionOverlay) Render() string {
 	rendered := s.Inner.Render()
 	if rendered == "" {
