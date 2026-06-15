@@ -9,6 +9,14 @@ type TabItem[W StreamWidget] struct {
 	ID     string
 }
 
+func (tv *TabItem[W]) Focus() tea.Cmd {
+	return Focus(tv.Widget)
+}
+
+func (tv *TabItem[W]) Blur() {
+	Blur(tv.Widget)
+}
+
 type TabView[W StreamWidget] struct {
 	Items     []*TabItem[W]
 	ActiveIdx int
@@ -56,7 +64,7 @@ func (tv *TabView[W]) SwitchTo(idx int) (bool, tea.Cmd) {
 	tv.ActiveIdx = idx
 	if item := tv.ActiveItem(); item != nil {
 		remeasure, cmd := item.Widget.Update(tea.WindowSizeMsg{Width: tv.Width, Height: tv.Height})
-		return remeasure, tea.Batch(cmd, Focus(item))
+		return remeasure, tea.Batch(cmd, Focus(item.Widget))
 	}
 	return false, nil
 }

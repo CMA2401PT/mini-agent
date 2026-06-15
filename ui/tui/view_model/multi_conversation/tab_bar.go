@@ -109,8 +109,8 @@ func (tb *TabBar) Update(msg tea.Msg) (bool, tea.Cmd) {
 		}
 		available := tb.Width - 2
 		tabWidth := available / len(tb.Entries)
-		if tabWidth > 30 {
-			tabWidth = 30
+		if tabWidth > 20 {
+			tabWidth = 20
 		}
 		if tabWidth < 8 {
 			tabWidth = 8

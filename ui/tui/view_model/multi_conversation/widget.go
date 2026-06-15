@@ -59,59 +59,15 @@ func (w *MultiConversationWidget) Update(msg tea.Msg) (bool, tea.Cmd) {
 }
 
 func (w *MultiConversationWidget) handleConversationEvent(ev swarm.TaggedConversationOutput) (bool, tea.Cmd) {
-	idx := w.convID[ev.ConvID]
+	idx, ok := w.convID[ev.ConvID]
+	if !ok {
+		return false, nil
+	}
 	view := w.tabView.Items[idx].Widget
 	changed, cmd := view.Update(ev.ConversationOutput)
-	tabBarEntry := w.tabBar.Entries[idx]
-	tabBarEntry.Status = view.Phase()
+	w.tabBar.Entries[idx].Status = view.Phase()
 	return changed, cmd
 }
-
-// func (w *MultiConversationWidget) handleInteract(ev InteractEvent) (bool, tea.Cmd) {
-// 	switch ev.Type {
-// 	case InteractInput:
-// 		text := strings.TrimSpace(ev.Prompt)
-// 		if strings.HasPrefix(text, "/new") {
-// 			title := strings.TrimPrefix(text, "/new")
-// 			title = strings.TrimSpace(title)
-// 			if title == "" {
-// 				title = "新会话"
-// 			}
-// 			convID, err := w.swarm.StartConversation(context.Background(), []core.UserCommand{
-// 				core.PromptInput{Prompt: title},
-// 			}, nil)
-// 			if err != nil {
-// 				return false, nil
-// 			}
-// 			idx, initCmd := w.createTab(convID, title)
-// 			if idx >= 0 {
-// 				w.metas[idx].title = title
-// 				w.syncTabBarEntry(idx, w.metas[idx])
-// 				w.tabView.SwitchTo(idx)
-// 				w.tabBar.ActiveIdx = idx
-// 			}
-// 			return false, initCmd
-// 		}
-
-// 		_, ok := w.convID[ev.ConvID]
-// 		if !ok {
-// 			return false, nil
-// 		}
-// 		err := w.swarm.SendCommand(core.RoutedUserCommand{
-// 			ConvID:  ev.ConvID,
-// 			Command: core.PromptInput{Prompt: text},
-// 		})
-// 		_ = err
-// 		return false, nil
-
-// 	case InteractInterrupt:
-// 		_ = w.swarm.InterruptConversation(ev.ConvID)
-// 		return false, nil
-
-// 	default:
-// 		return false, nil
-// 	}
-// }
 
 func (w *MultiConversationWidget) CreateTab(convID string, title string) int {
 	view := agent_interact.NewSingleReadWrite(func(ui agent_interact.UserInteract) {
@@ -119,7 +75,6 @@ func (w *MultiConversationWidget) CreateTab(convID string, title string) int {
 			ConvID:       convID,
 			UserInteract: ui,
 		}
-		ie.ConvID = convID
 		w.onInteract(ie)
 	})
 
