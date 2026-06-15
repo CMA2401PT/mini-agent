@@ -9,7 +9,6 @@ import (
 	"mini_agent/ui/tui/common"
 
 	tea "charm.land/bubbletea/v2"
-	"github.com/charmbracelet/x/ansi"
 )
 
 type SectionType uint32
@@ -32,50 +31,35 @@ type InputVisualState struct {
 	Folded bool
 }
 
-func truncateToOneLine(text string, maxWidth int) string {
-	w := ansi.StringWidth(text)
-	if w <= maxWidth {
-		return text
-	}
-	runes := []rune(text)
-	target := maxWidth - 1
-	if target < 0 {
-		target = 0
-	}
-	if target > len(runes) {
-		target = len(runes)
-	}
-	return string(runes[:target]) + "…"
-}
-
 func (*InputVisualState) Kind() SectionType {
 	return BlockSectionInput
 }
 
 func (s *InputVisualState) ExpandWidget(section blockSectionModel, width int) common.StreamWidget {
-	content := section.Content
 	box := common.BoxStyle{
 		Padding: common.Insets{Top: 1, Right: 1, Bottom: 1, Left: 2},
-		Border:  common.BorderSpec{Left: "┃", Style: accentStyle()},
+		Border:  common.BorderSpec{Left: "\u2503", Style: accentStyle()},
 		Style:   calloutStyle(),
 	}
 	if s.Folded {
-		content = truncateToOneLine(singleLine(section.Content), width-6)
 		box = common.BoxStyle{
 			Padding: common.Insets{Right: 1, Left: 2},
-			Border:  common.BorderSpec{Left: "┃", Style: accentStyle()},
+			Border:  common.BorderSpec{Left: "\u2503", Style: accentStyle()},
 			Style:   calloutStyle(),
 		}
 	}
-	var widget *common.TextBlockWithPaddingAndMargin
-	widget = common.NewTextBlockWithPaddingAndMargin(content, calloutStyle(), box, func(x, y int) (bool, tea.Cmd) {
-		if !s.Folded && !canFoldSection(section.Type, section.Content, widget.Text.Width) {
+
+	fb := common.NewFoldableTextBlock(section.Content, "", calloutStyle(), "\u25b8 ", "\u25be ", s.Folded,
+		func(folded bool) { s.Folded = folded },
+	)
+	return common.NewBlockWithPaddingAndMargin(fb, box, func(x, y int) (bool, tea.Cmd) {
+		if !fb.CanFold() {
 			return false, nil
 		}
-		s.Folded = !s.Folded
+		fb.Folded = !fb.Folded
+		s.Folded = fb.Folded
 		return true, nil
 	})
-	return widget
 }
 
 type ReasoningVisualState struct {
@@ -89,7 +73,7 @@ func (*ReasoningVisualState) Kind() SectionType {
 	return BlockSectionReasoning
 }
 
-func reasoningLines(state *ReasoningVisualState, content string, width int, includeContent bool, folded bool) []string {
+func reasoningLines(state *ReasoningVisualState, content string, width int, includeContent bool) []string {
 	reasoningSeconds := func(state *ReasoningVisualState, now time.Time) float64 {
 		if state == nil || state.StartedAt.IsZero() {
 			return 0
@@ -104,9 +88,6 @@ func reasoningLines(state *ReasoningVisualState, content string, width int, incl
 		spin := common.SpinnerFrame(spinnerFrames, state.Spinner, accentStyle())
 		banner = fmt.Sprintf("%s %s", spin, banner)
 	}
-	if folded {
-		banner = "▸ " + banner
-	}
 	out := []string{accentStyle().Render(banner)}
 	if !includeContent {
 		return out
@@ -118,16 +99,15 @@ func reasoningLines(state *ReasoningVisualState, content string, width int, incl
 }
 
 func (s *ReasoningVisualState) ExpandWidget(section blockSectionModel, width int) common.StreamWidget {
-	onClick := func(x, y int) (bool, tea.Cmd) {
-		s.Folded = !s.Folded
-		return true, nil
-	}
-	banner := common.NewTextBlock(strings.Join(reasoningLines(s, section.Content, width, false, s.Folded), "\n"), accentStyle(), onClick)
-	if s.Folded {
-		return banner
-	}
-	content := common.NewTextBlock(section.Content, mutedStyle(), onClick)
-	return common.NewStreamColumn(banner, content)
+	foldedLines := reasoningLines(s, section.Content, width, false)
+	foldedText := strings.Join(foldedLines, "\n")
+
+	allLines := reasoningLines(s, section.Content, width, true)
+	fullText := strings.Join(allLines, "\n")
+
+	return common.NewFoldableTextBlock(fullText, foldedText, accentStyle(), "\u25b8 ", "\u25be ", s.Folded,
+		func(folded bool) { s.Folded = folded },
+	)
 }
 
 type AnswerVisualState struct {
@@ -139,20 +119,9 @@ func (*AnswerVisualState) Kind() SectionType {
 }
 
 func (s *AnswerVisualState) ExpandWidget(section blockSectionModel, width int) common.StreamWidget {
-	text := section.Content
-	if s.Folded {
-		prefix := "▸ "
-		text = prefix + truncateToOneLine(singleLine(section.Content), width-ansi.StringWidth(prefix)-2)
-	}
-	var widget *common.TextBlock
-	widget = common.NewTextBlock(text, normalStyle(), func(x, y int) (bool, tea.Cmd) {
-		if !s.Folded && !canFoldSection(section.Type, section.Content, widget.Width) {
-			return false, nil
-		}
-		s.Folded = !s.Folded
-		return true, nil
-	})
-	return widget
+	return common.NewFoldableTextBlock(section.Content, "", normalStyle(), "\u25b8 ", "\u25be ", s.Folded,
+		func(folded bool) { s.Folded = folded },
+	)
 }
 
 type ToolVisualState struct {
@@ -164,19 +133,9 @@ func (*ToolVisualState) Kind() SectionType {
 }
 
 func (s *ToolVisualState) ExpandWidget(section blockSectionModel, width int) common.StreamWidget {
-	text := section.Content
-	if s.Folded {
-		if section.Summary != "" {
-			text = section.Summary
-		} else {
-			prefix := "▸ "
-			text = prefix + truncateToOneLine(singleLine(section.Content), width-ansi.StringWidth(prefix)-2)
-		}
-	}
-	return common.NewTextBlock(text, mutedStyle(), func(x, y int) (bool, tea.Cmd) {
-		s.Folded = !s.Folded
-		return true, nil
-	})
+	return common.NewFoldableTextBlock(section.Content, section.Summary, mutedStyle(), "\u25b8 ", "\u25be ", s.Folded,
+		func(folded bool) { s.Folded = folded },
+	)
 }
 
 type SystemVisualState struct {
@@ -195,22 +154,24 @@ func (s *SystemVisualState) ExpandWidget(section blockSectionModel, width int) c
 		Style:   systemStyle(),
 	}
 	if s.Folded {
-		content = truncateToOneLine(singleLine("[系统] " + section.Content), width-6)
 		box = common.BoxStyle{
 			Padding: common.Insets{Right: 1, Left: 2},
 			Border:  common.BorderSpec{Left: " ", Style: nonStyle()},
 			Style:   systemStyle(),
 		}
 	}
-	var widget *common.TextBlockWithPaddingAndMargin
-	widget = common.NewTextBlockWithPaddingAndMargin(content, systemStyle(), box, func(x, y int) (bool, tea.Cmd) {
-		if !s.Folded && !canFoldSection(section.Type, "[系统] "+section.Content, widget.Text.Width) {
+
+	fb := common.NewFoldableTextBlock(content, "", systemStyle(), "\u25b8 ", "\u25be ", s.Folded,
+		func(folded bool) { s.Folded = folded },
+	)
+	return common.NewBlockWithPaddingAndMargin(fb, box, func(x, y int) (bool, tea.Cmd) {
+		if !fb.CanFold() {
 			return false, nil
 		}
-		s.Folded = !s.Folded
+		fb.Folded = !fb.Folded
+		s.Folded = fb.Folded
 		return true, nil
 	})
-	return widget
 }
 
 type MetaVisualState struct{}
@@ -290,7 +251,6 @@ func (b *Block) tickActiveReasoning(now time.Time) bool {
 	return true
 }
 
-// 使得 visualStates 数量与 sections 匹配
 func increaseSectionVisualStates(sections []blockSectionModel, visualStates []SectionVisualState) []SectionVisualState {
 	newSectionVisualState := func(kind SectionType) SectionVisualState {
 		switch kind {
@@ -350,20 +310,4 @@ func updateReasoningStates(
 		}
 	}
 	return visualStates
-}
-
-func canFoldSection(kind SectionType, content string, width int) bool {
-	width = max(1, width)
-	switch kind {
-	case BlockSectionInput:
-		return len(wrapLines(content, width)) > 1
-	case BlockSectionReasoning:
-		return strings.TrimSpace(content) != ""
-	case BlockSectionAnswer:
-		return len(wrapLines(content, width)) > 1
-	case BlockSectionTools:
-		return true
-	default:
-		return false
-	}
 }

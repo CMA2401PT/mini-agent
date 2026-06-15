@@ -35,13 +35,6 @@ func (b blockSections) GetLastReasoning() int {
 	return -1
 }
 
-func (section blockSectionModel) foldedSummary() string {
-	if section.Summary != "" {
-		return section.Summary
-	}
-	return "▸ " + singleLine(section.Content)
-}
-
 func textBlock(label, content string) string {
 	content = strings.TrimSpace(content)
 	if content == "" {
@@ -234,7 +227,7 @@ func genToolSection(tool toolCallViewModel) blockSectionModel {
 		status = "已完成"
 	}
 	section := blockSectionModel{Type: BlockSectionTools}
-	section.Summary = fmt.Sprintf("▸ %s %s · %s", tool.Name, tool.ID, status)
+	section.Summary = fmt.Sprintf("%s %s · %s", tool.Name, tool.ID, status)
 	parts := []string{
 		fmt.Sprintf("Tool: %s", tool.Name),
 		fmt.Sprintf("ID: %s", tool.ID),

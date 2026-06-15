@@ -1,6 +1,8 @@
 package common
 
 import (
+	"strings"
+
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 )
@@ -17,6 +19,13 @@ type TextBlock struct {
 
 func NewTextBlock(text string, style lipgloss.Style, onClick OnClickFunc) *TextBlock {
 	return &TextBlock{Text: text, Style: style, OnClick: onClick}
+}
+
+func textLines(text string) []string {
+	if text == "" {
+		return []string{""}
+	}
+	return strings.Split(text, "\n")
 }
 
 func (b *TextBlock) Measure(width int) StreamWidgetHeight {
