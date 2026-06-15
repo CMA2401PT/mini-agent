@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"mini_agent/agent/conversation"
+	"mini_agent/agent/conversation/plain"
 	"mini_agent/core"
 	"mini_agent/providers/openai"
 	"mini_agent/ui/tui/view_model/agent_interact"
@@ -34,16 +34,18 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	ctrl := &conversation.PlainConversationCtrl{
+	ctrl := &plain.PlainConversationCtrl{
 		InitSystemPrompt: []core.Turn{
 			{core.TextMsg{RoleName: "system", Content: "你是一个精准的助手。需要诚实的回答问题，如果遇到不清楚，不知道的消息，如实说自己不知道。"}},
 		},
 		InterruptAppendMessage: []core.Message{
 			core.TextMsg{RoleName: "system", Content: "该轮输出被打断。"},
 		},
+		Provider: p,
+		Tools:    runner,
 	}
-	handle, stream, err := ctrl.Emit(ctx,
-		core.PromptCommand{Provider: p, Tools: runner}, nil)
+
+	handle, stream, err := ctrl.Emit(ctx, nil, nil)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -55,17 +57,13 @@ func main() {
 			switch e := event.(type) {
 			case agent_interact.UserQuit:
 				handle.LockCmds()
-				handle.SetCmds([]core.UserCommand{&core.EndConversationCommand{}})
+				handle.SetCmds([]core.UserCommand{plain.EndConversationCommand{}})
 				handle.UnlockCmds()
 				handle.InterruptRunningCmd()
 			case agent_interact.UserInput:
 				handle.LockCmds()
 				cmds := handle.GetCmds()
-				cmds = append(cmds, &core.PromptCommand{
-					Messages: []core.Message{
-						core.TextMsg{RoleName: "user", Content: e.Prompt},
-					},
-				})
+				cmds = append(cmds, plain.PromptInput{Prompt: e.Prompt, Provider: nil})
 				handle.SetCmds(cmds)
 				handle.UnlockCmds()
 			case agent_interact.UserInterrupt:

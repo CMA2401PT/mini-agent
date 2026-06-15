@@ -1,4 +1,4 @@
-package conversation
+package plain
 
 import (
 	"context"
@@ -15,11 +15,13 @@ var errStageTerminated = errors.New("stage terminated")
 type PlainConversationCtrl struct {
 	InitSystemPrompt       []core.Turn
 	InterruptAppendMessage []core.Message
+	Provider               core.Provider
+	Tools                  core.ToolSetAndRunner
 }
 
 func (c *PlainConversationCtrl) Emit(
 	ctx context.Context,
-	initCmds core.PromptCommand,
+	initCmds []core.UserCommand,
 	history []core.Turn,
 ) (core.ControlHandle, core.OutStream[core.ConversationOutput], error) {
 	if history == nil {
@@ -28,9 +30,10 @@ func (c *PlainConversationCtrl) Emit(
 	history = core.CloneTurns(history)
 
 	h := &plainHandle{
-		provider:          initCmds.Provider,
-		tools:             initCmds.Tools,
+		provider:          c.Provider,
+		tools:             c.Tools,
 		history:           history,
+		cmds:              initCmds,
 		interruptMessages: c.InterruptAppendMessage,
 		wakeup:            make(chan struct{}, 1),
 		interruptCh:       make(chan struct{}, 1),
@@ -127,27 +130,29 @@ func (h *plainHandle) run(ctx context.Context, out chan<- core.ConversationOutpu
 		h.cmdMu.Unlock()
 
 		switch c := cmd.(type) {
-		case *core.EndConversationCommand:
+		case EndConversationCommand:
 			out <- core.ConversationOutput{
 				BeforeEvent: core.KeyNotifyDone{},
 			}
 			return
 
-		case *core.PromptCommand:
+		case PromptInput:
 			p, t := h.provider, h.tools
 			if c.Provider != nil {
 				p = c.Provider
 			}
-			if c.Tools != nil {
-				t = c.Tools
+			msgs := []core.Message{
+				core.TextMsg{
+					RoleName: "user",
+					Content:  string(c.Prompt),
+				},
 			}
-
 			out <- core.ConversationOutput{
 				SyncPrimitives: core.SyncPrimitiveNewTurn{},
 			}
 			out <- core.ConversationOutput{
 				SyncPrimitives: core.SyncPrimitiveAppendMessages{
-					Messages: append(c.Messages,
+					Messages: append(msgs,
 						core.TrasnparentTextMsg{
 							RoleName: "ProviderName",
 							Content:  p.Name(),
@@ -160,7 +165,7 @@ func (h *plainHandle) run(ctx context.Context, out chan<- core.ConversationOutpu
 				},
 			}
 
-			h.history = append(h.history, c.Messages)
+			h.history = append(h.history, msgs)
 
 			turnCtx, cancel := context.WithCancelCause(ctx)
 			stream := intra_turn.RunTurn(turnCtx, p, t, h.history,
