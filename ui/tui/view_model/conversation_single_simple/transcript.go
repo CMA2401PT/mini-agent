@@ -1,4 +1,4 @@
-package agent_interact_simple
+package conversation_single_simple
 
 import (
 	"charm.land/bubbles/v2/viewport"

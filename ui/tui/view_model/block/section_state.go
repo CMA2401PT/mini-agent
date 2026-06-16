@@ -64,7 +64,7 @@ func (s *InputVisualState) ExpandWidget(section blockSectionModel, width int) co
 
 type ReasoningVisualState struct {
 	Folded    bool
-	Spinner   int
+	Spinner   *common.SpinnerWidget
 	StartedAt time.Time
 	EndedAt   time.Time
 }
@@ -85,7 +85,7 @@ func reasoningLines(state *ReasoningVisualState, content string, width int, incl
 	}
 	banner := fmt.Sprintf("Reasoning: %.1fs", reasoningSeconds(state, time.Now()))
 	if state != nil && state.EndedAt.IsZero() && !state.StartedAt.IsZero() {
-		spin := common.SpinnerFrame(spinnerFrames, state.Spinner, accentStyle())
+		spin := state.Spinner.View()
 		banner = fmt.Sprintf("%s %s", spin, banner)
 	}
 	out := []string{accentStyle().Render(banner)}
@@ -200,7 +200,7 @@ func sectionFolded(state SectionVisualState) bool {
 }
 
 func (b *Block) activeReasoningIndex(sections []blockSectionModel) int {
-	if b.phase() != core.TurnPhaseReasoning {
+	if b.Phase() != core.TurnPhaseReasoning {
 		return -1
 	}
 	for i := len(sections) - 1; i >= 0; i-- {
@@ -214,22 +214,7 @@ func (b *Block) activeReasoningIndex(sections []blockSectionModel) int {
 func (b *Block) updateReasoningStates(now time.Time) {
 	sections := collectTurnSections(b.TurnData)
 	active := b.activeReasoningIndex(sections)
-	for i, state := range b.SectionVisualStates {
-		reasoning, ok := state.(*ReasoningVisualState)
-		if !ok {
-			continue
-		}
-		if i == active {
-			if reasoning.StartedAt.IsZero() {
-				reasoning.StartedAt = now
-			}
-			reasoning.EndedAt = time.Time{}
-			continue
-		}
-		if !reasoning.StartedAt.IsZero() && reasoning.EndedAt.IsZero() {
-			reasoning.EndedAt = now
-		}
-	}
+	applyReasoningTimers(now, active, b.SectionVisualStates)
 }
 
 func (b *Block) tickActiveReasoning(now time.Time) bool {
@@ -247,7 +232,7 @@ func (b *Block) tickActiveReasoning(now time.Time) bool {
 		state.StartedAt = now
 	}
 	state.EndedAt = time.Time{}
-	state.Spinner = (state.Spinner + 1) % len(spinnerFrames)
+	state.Spinner.Update(common.AnimationTickMsg(time.Now()))
 	return true
 }
 
@@ -257,7 +242,9 @@ func increaseSectionVisualStates(sections []blockSectionModel, visualStates []Se
 		case BlockSectionInput:
 			return &InputVisualState{}
 		case BlockSectionReasoning:
-			return &ReasoningVisualState{}
+			return &ReasoningVisualState{
+				Spinner: common.NewSpinnerWidget(common.DefaultSpinnerFrames, accentStyle()),
+			}
 		case BlockSectionAnswer:
 			return &AnswerVisualState{}
 		case BlockSectionTools:
@@ -289,16 +276,13 @@ func increaseSectionVisualStates(sections []blockSectionModel, visualStates []Se
 	return visualStates
 }
 
-func updateReasoningStates(
-	now time.Time, activeReasoningIndex int,
-	visualStates []SectionVisualState,
-) []SectionVisualState {
-	for i, state := range visualStates {
+func applyReasoningTimers(now time.Time, activeIdx int, states []SectionVisualState) {
+	for i, state := range states {
 		reasoning, ok := state.(*ReasoningVisualState)
 		if !ok {
 			continue
 		}
-		if i == activeReasoningIndex {
+		if i == activeIdx {
 			if reasoning.StartedAt.IsZero() {
 				reasoning.StartedAt = now
 			}
@@ -309,5 +293,4 @@ func updateReasoningStates(
 			reasoning.EndedAt = now
 		}
 	}
-	return visualStates
 }

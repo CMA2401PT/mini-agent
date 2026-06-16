@@ -14,7 +14,6 @@ type Block struct {
 	TurnData   core.Turn
 	phaseState core.TurnPhase
 	Width      int
-	// TurnData 正常流式变化时，每次产生的 sections 顺序稳定且只增不减。
 	SectionVisualStates []SectionVisualState
 }
 
@@ -32,7 +31,7 @@ func NewBlock(width int) *Block {
 }
 
 func (b *Block) Render() string {
-	return strings.TrimRight(NewBlockRenderHelper(b).Render(), "\n")
+	return strings.TrimRight(b.BuildHelper().Render(), "\n")
 }
 
 func (b *Block) Update(msg tea.Msg) (bool, tea.Cmd) {
@@ -42,7 +41,7 @@ func (b *Block) Update(msg tea.Msg) (bool, tea.Cmd) {
 		if msg.Reset {
 			b.SectionVisualStates = nil
 		}
-		b.RetrieveVisualState(NewBlockRenderHelper(b))
+		b.BuildHelper().WriteBack(b)
 		return true, nil
 	case PhaseMsg:
 		return b.SetPhase(msg.Phase)
@@ -55,9 +54,9 @@ func (b *Block) Update(msg tea.Msg) (bool, tea.Cmd) {
 		return false, nil
 
 	default:
-		helper := NewBlockRenderHelper(b)
+		helper := b.BuildHelper()
 		changed, cmd := helper.Update(msg)
-		b.RetrieveVisualState(helper)
+		helper.WriteBack(b)
 		return changed, cmd
 	}
 }
@@ -75,7 +74,7 @@ func (b *Block) SetPhase(phase core.TurnPhase) (bool, tea.Cmd) {
 		return false, nil
 	}
 	b.phaseState = phase
-	b.RetrieveVisualState(NewBlockRenderHelper(b))
+	b.BuildHelper().WriteBack(b)
 	return true, nil
 }
 
@@ -87,9 +86,3 @@ func (b *Block) IsAnimating() bool {
 func (b *Block) Phase() core.TurnPhase {
 	return b.phaseState
 }
-
-func (b *Block) phase() core.TurnPhase {
-	return b.phaseState
-}
-
-var spinnerFrames = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}

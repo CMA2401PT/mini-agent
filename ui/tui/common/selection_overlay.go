@@ -10,6 +10,8 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
+const copyNoticeKey = "copy"
+
 type SelectPos struct{ Line, Col int }
 
 type Selection struct {
@@ -30,7 +32,7 @@ type SelectionOverlay struct {
 	Inner       StreamWidget
 	Sel         Selection
 	NoticeText  string
-	noticeUntil time.Time
+	notice      TimedNotice
 	cachedLines []string
 }
 
@@ -132,9 +134,9 @@ func (s *SelectionOverlay) selectedText() string {
 func (s *SelectionOverlay) Update(msg tea.Msg) (bool, tea.Cmd) {
 	switch msg := msg.(type) {
 
-	case copyNoticeExpiredMsg:
-		if !time.Time(msg).Before(s.noticeUntil) {
-			s.noticeUntil = time.Time{}
+	case TimedNoticeExpiredMsg:
+		if msg.Key == copyNoticeKey {
+			s.notice.Clear()
 		}
 		return false, nil
 
@@ -175,19 +177,15 @@ func (s *SelectionOverlay) scheduleCopyNotice(text string) tea.Cmd {
 	if s.NoticeText == "" {
 		return copyToClipboard(text)
 	}
-	s.noticeUntil = time.Now().Add(2 * time.Second)
+	s.notice.Show(s.NoticeText, 2*time.Second)
 	return tea.Batch(
 		copyToClipboard(text),
-		tea.Tick(2*time.Second, func(now time.Time) tea.Msg {
-			return copyNoticeExpiredMsg(now)
-		}),
+		ScheduleTimedNotice(copyNoticeKey, 2*time.Second),
 	)
 }
 
-type copyNoticeExpiredMsg time.Time
-
 func (s *SelectionOverlay) renderCopyNotice(rows []string) {
-	if s.NoticeText == "" || len(rows) == 0 || time.Now().After(s.noticeUntil) {
+	if s.NoticeText == "" || len(rows) == 0 || !s.notice.Active(time.Now()) {
 		return
 	}
 	width := ansi.StringWidth(rows[0])

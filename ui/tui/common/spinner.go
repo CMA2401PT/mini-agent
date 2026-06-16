@@ -5,6 +5,8 @@ import (
 	"charm.land/lipgloss/v2"
 )
 
+var DefaultSpinnerFrames = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
+
 type SpinnerWidget struct {
 	Frames []string
 	Frame  int
@@ -27,9 +29,16 @@ func (w *SpinnerWidget) Render() string {
 }
 
 func (w *SpinnerWidget) Update(msg tea.Msg) (bool, tea.Cmd) {
-	if size, ok := msg.(tea.WindowSizeMsg); ok {
-		w.width = size.Width
-		w.height = size.Height
+	switch msg.(type) {
+	case tea.WindowSizeMsg:
+		if size, ok := msg.(tea.WindowSizeMsg); ok {
+			w.width = size.Width
+			w.height = size.Height
+		}
+	case AnimationTickMsg:
+		if len(w.Frames) > 0 {
+			w.Frame = (w.Frame + 1) % len(w.Frames)
+		}
 	}
 	return false, nil
 }

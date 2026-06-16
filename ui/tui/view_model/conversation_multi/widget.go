@@ -1,30 +1,30 @@
-package multi_conversation
+package conversation_multi
 
 import (
 	"mini_agent/agent/conversation/swarm"
 	"mini_agent/core"
 	"mini_agent/ui/tui/common"
-	"mini_agent/ui/tui/view_model/agent_interact"
+	"mini_agent/ui/tui/view_model/conversation_single"
 
 	tea "charm.land/bubbletea/v2"
 )
 
 type TaggedUserInteract struct {
 	ConvID       string
-	UserInteract agent_interact.UserInteract
+	UserInteract conversation_single.UserInteract
 }
 
 type MultiConversationWidget struct {
 	*common.StreamColumn
 	tabBar     *TabBar
-	tabView    *common.TabView[*agent_interact.SingleConversationView]
+	tabView    *common.TabView[*conversation_single.SingleConversationView]
 	onInteract func(TaggedUserInteract)
 	convID     map[string]int
 }
 
 func NewMultiConversationWidget(onInteract func(TaggedUserInteract)) *MultiConversationWidget {
-	tabBar := &TabBar{}
-	tabView := common.NewTabView[*agent_interact.SingleConversationView]()
+	tabBar := NewTabBar()
+	tabView := common.NewTabView[*conversation_single.SingleConversationView]()
 	mainLayout := common.NewStreamColumn(
 		tabBar,
 		tabView,
@@ -70,7 +70,7 @@ func (w *MultiConversationWidget) handleConversationEvent(ev swarm.TaggedConvers
 }
 
 func (w *MultiConversationWidget) CreateTab(convID string, title string) int {
-	view := agent_interact.NewSingleReadWrite(func(ui agent_interact.UserInteract) {
+	view := conversation_single.NewSingleReadWrite(func(ui conversation_single.UserInteract) {
 		ie := TaggedUserInteract{
 			ConvID:       convID,
 			UserInteract: ui,

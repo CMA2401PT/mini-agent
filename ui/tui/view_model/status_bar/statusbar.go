@@ -8,6 +8,7 @@ import (
 
 	"mini_agent/core"
 	"mini_agent/ui/tui/common"
+	"mini_agent/ui/tui/view_model"
 
 	tea "charm.land/bubbletea/v2"
 )
@@ -17,7 +18,7 @@ type StatusBar struct {
 	running                       bool
 	errText                       string
 	escCount                      int
-	spinner                       int
+	spinner                       *common.SpinnerWidget
 	usage                         *core.Usage
 	suppressFailureAfterInterrupt bool
 	width                         int
@@ -29,7 +30,10 @@ type StatusBar struct {
 }
 
 func NewStatusBar() *StatusBar {
-	return &StatusBar{Phase: core.TurnPhaseWaitingInput}
+	return &StatusBar{
+		Phase:   core.TurnPhaseWaitingInput,
+		spinner: common.NewSpinnerWidget(common.DefaultSpinnerFrames, common.ActiveTheme().AccentStyle()),
+	}
 }
 
 func (s *StatusBar) Measure(width int) common.StreamWidgetHeight {
@@ -60,13 +64,11 @@ func (s *StatusBar) Update(msg tea.Msg) (bool, tea.Cmd) {
 		if !s.running || s.Phase == core.TurnPhaseWaitingInput || s.Phase == core.TurnPhaseFinished {
 			return false, nil
 		}
-		s.spinner = (s.spinner + 1) % len(statusSpinnerFrames)
+		s.spinner.Update(msg)
 		return false, nil
 	}
 	return false, nil
 }
-
-const escTimeout = 500 * time.Millisecond
 
 func (s *StatusBar) consumeAgentEvent(event core.ConversationOutput) tea.Cmd {
 	wasRunning := s.running
@@ -110,7 +112,7 @@ func (s *StatusBar) consumeKeyNotify(event core.KeyNotify) {
 		s.running = false
 		s.Phase = core.TurnPhaseFinished
 		s.escCount = 0
-	case core.KeyNotifyWaitiningPrompt:
+	case core.KeyNotifyWaitingPrompt:
 		s.running = false
 		s.Phase = core.TurnPhaseWaitingInput
 		s.escCount = 0
@@ -151,7 +153,7 @@ func (s *StatusBar) handleEsc() tea.Cmd {
 		return nil
 	}
 	now := time.Now()
-	if now.Sub(s.lastEscTime) > escTimeout {
+	if now.Sub(s.lastEscTime) > view_model.EscTimeout {
 		s.escCount = 0
 	}
 	s.escCount++
@@ -165,5 +167,3 @@ func (s *StatusBar) handleEsc() tea.Cmd {
 	}
 	return s.OnInterrupt()
 }
-
-var statusSpinnerFrames = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}

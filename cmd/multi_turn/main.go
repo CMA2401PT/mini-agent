@@ -9,7 +9,7 @@ import (
 	"mini_agent/core"
 	"mini_agent/providers/openai"
 	"mini_agent/ui/tui/common"
-	"mini_agent/ui/tui/view_model/agent_interact"
+	"mini_agent/ui/tui/view_model/conversation_single"
 
 	tea "charm.land/bubbletea/v2"
 )
@@ -52,8 +52,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	interactStream := make(core.OutStream[agent_interact.UserInteract], 64)
-	singleView := agent_interact.NewSingleReadWrite(func(ui agent_interact.UserInteract) {
+	interactStream := make(core.OutStream[conversation_single.UserInteract], 64)
+	singleView := conversation_single.NewSingleReadWrite(func(ui conversation_single.UserInteract) {
 		interactStream <- ui
 	})
 	model := newReadwriteModel(singleView, stream)
@@ -61,18 +61,18 @@ func main() {
 	go func() {
 		for event := range interactStream {
 			switch e := event.(type) {
-			case agent_interact.UserQuit:
+			case conversation_single.UserQuit:
 				handle.LockCmds()
 				handle.SetCmds([]core.UserCommand{core.EndConversationCommand{}})
 				handle.UnlockCmds()
 				handle.InterruptRunningCmd()
-			case agent_interact.UserInput:
+			case conversation_single.UserInput:
 				handle.LockCmds()
 				cmds := handle.GetCmds()
 				cmds = append(cmds, core.PromptInput{Prompt: e.Prompt, Provider: nil})
 				handle.SetCmds(cmds)
 				handle.UnlockCmds()
-			case agent_interact.UserInterrupt:
+			case conversation_single.UserInterrupt:
 				handle.InterruptRunningCmd()
 			}
 		}

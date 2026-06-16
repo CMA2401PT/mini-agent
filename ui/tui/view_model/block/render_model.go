@@ -101,7 +101,7 @@ func collectTurnSections(turn core.Turn) blockSections {
 
 	for i, msg := range turn {
 		switch m := msg.(type) {
-		case core.TrasnparentTextMsg:
+		case core.TransparentTextMsg:
 			switch m.RoleName {
 			case "ProviderName":
 				providerName = m.Content

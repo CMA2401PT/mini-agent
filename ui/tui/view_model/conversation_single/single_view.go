@@ -1,4 +1,4 @@
-package agent_interact
+package conversation_single
 
 import (
 	"mini_agent/core"

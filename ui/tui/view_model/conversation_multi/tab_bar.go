@@ -1,4 +1,4 @@
-package multi_conversation
+package conversation_multi
 
 import (
 	"strings"
@@ -18,14 +18,18 @@ type TabBarEntry struct {
 }
 
 type TabBar struct {
-	Entries      []TabBarEntry
-	ActiveIdx    int
-	Width        int
-	OnSwitch     func(idx int) (bool, tea.Cmd)
-	spinnerFrame int
+	Entries   []TabBarEntry
+	ActiveIdx int
+	Width     int
+	OnSwitch  func(idx int) (bool, tea.Cmd)
+	spinner   *common.SpinnerWidget
 }
 
-var tabSpinnerFrames = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
+func NewTabBar() *TabBar {
+	return &TabBar{
+		spinner: common.NewSpinnerWidget(common.DefaultSpinnerFrames, common.ActiveTheme().AccentStyle()),
+	}
+}
 
 func (tb *TabBar) Measure(width int) common.StreamWidgetHeight {
 	return common.StreamWidgetHeight{Height: 2, ExpectGrow: false}
@@ -124,7 +128,7 @@ func (tb *TabBar) Update(msg tea.Msg) (bool, tea.Cmd) {
 			return tb.OnSwitch(idx)
 		}
 	case common.AnimationTickMsg:
-		tb.spinnerFrame++
+		tb.spinner.Update(msg)
 	}
 	return false, nil
 }
@@ -134,7 +138,7 @@ func (tb *TabBar) statusIndicator(status core.TurnPhase) string {
 	case core.TurnPhaseWaitingInput:
 		return "\u25a1"
 	case core.TurnPhaseRequesting, core.TurnPhaseReasoning, core.TurnPhaseOutput, core.TurnPhaseTool:
-		return tabSpinnerFrames[tb.spinnerFrame%len(tabSpinnerFrames)]
+		return tb.spinner.View()
 	case core.TurnPhaseFinished:
 		return "\u2713"
 	case core.TurnPhaseFailure:

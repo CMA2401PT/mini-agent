@@ -6,10 +6,10 @@ type KeyNotify interface {
 	KeyNotify()
 }
 
-type KeyNotifyWaitiningPrompt struct{}
+type KeyNotifyWaitingPrompt struct{}
 
-func (e KeyNotifyWaitiningPrompt) String() string { return "[Waiting Prompt]" }
-func (e KeyNotifyWaitiningPrompt) KeyNotify()     {}
+func (e KeyNotifyWaitingPrompt) String() string { return "[Waiting Prompt]" }
+func (e KeyNotifyWaitingPrompt) KeyNotify()     {}
 
 // KeyNotifyRequestSent is emitted before each call to provider.Stream.
 // It is a control marker and does not change conversation content.

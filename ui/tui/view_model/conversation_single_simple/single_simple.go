@@ -1,4 +1,4 @@
-package agent_interact_simple
+package conversation_single_simple
 
 import (
 	"strings"
@@ -6,6 +6,7 @@ import (
 
 	"mini_agent/core"
 	"mini_agent/ui/tui/common"
+	"mini_agent/ui/tui/view_model"
 
 	"charm.land/bubbles/v2/textarea"
 	"charm.land/bubbles/v2/viewport"
@@ -47,8 +48,6 @@ type SingleConversationSimpleView struct {
 	escCount        int
 	lastEscTime     time.Time
 }
-
-const escTimeout = 500 * time.Millisecond
 
 func NewSingleSimpleReadWrite() (*SingleConversationSimpleView, core.OutStream[UserInteract]) {
 	ta := textarea.New()
@@ -208,7 +207,7 @@ func (v *SingleConversationSimpleView) handleEsc() tea.Cmd {
 		return nil
 	}
 	now := time.Now()
-	if now.Sub(v.lastEscTime) > escTimeout {
+	if now.Sub(v.lastEscTime) > view_model.EscTimeout {
 		v.escCount = 0
 	}
 	v.escCount++
@@ -221,10 +220,10 @@ func (v *SingleConversationSimpleView) handleEsc() tea.Cmd {
 }
 
 func (v *SingleConversationSimpleView) handleSyncEvent(msg core.ConversationOutput) (bool, tea.Cmd) {
-	if _, ok := msg.BeforeEvent.(core.KeyNotifyWaitiningPrompt); ok {
+	if _, ok := msg.BeforeEvent.(core.KeyNotifyWaitingPrompt); ok {
 		v.streaming = false
 	}
-	if _, ok := msg.AfterEvent.(core.KeyNotifyWaitiningPrompt); ok {
+	if _, ok := msg.AfterEvent.(core.KeyNotifyWaitingPrompt); ok {
 		v.streaming = false
 	}
 	v.syncMirror(msg)

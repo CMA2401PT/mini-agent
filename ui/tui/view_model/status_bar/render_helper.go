@@ -85,7 +85,7 @@ func (h *statusBarRenderHelper) statusWidget() *common.TextBlock {
 		}
 		return common.NewTextBlock(text, mutedStatusStyle, nil)
 	}
-	spin := common.SpinnerFrame(statusSpinnerFrames, h.bar.spinner, accentStatusStyle)
+	spin := h.bar.spinner.View()
 	text := "  " + spin + " " + h.bar.Phase.String()
 	if h.bar.running && !h.bar.ReadOnly {
 		if h.bar.escCount == 1 {

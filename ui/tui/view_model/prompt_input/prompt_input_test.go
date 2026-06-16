@@ -64,7 +64,7 @@ func TestPromptInputIgnoresEnterWhenNotAccepting(t *testing.T) {
 		t.Fatal("input should ignore enter while not accepting input")
 	}
 
-	input.Update(core.ConversationOutput{BeforeEvent: core.KeyNotifyWaitiningPrompt{}})
+	input.Update(core.ConversationOutput{BeforeEvent: core.KeyNotifyWaitingPrompt{}})
 	_, _ = input.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 	if !called {
 		t.Fatal("input should accept enter after waiting prompt notify")

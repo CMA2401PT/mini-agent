@@ -5,19 +5,19 @@ import (
 
 	"mini_agent/core"
 	"mini_agent/ui/tui/common"
-	"mini_agent/ui/tui/view_model/agent_interact"
+	"mini_agent/ui/tui/view_model/conversation_single"
 
 	tea "charm.land/bubbletea/v2"
 )
 
 type readwriteModel struct {
-	view    *agent_interact.SingleConversationView
+	view    *conversation_single.SingleConversationView
 	overlay *common.SelectionOverlay
 	events  core.OutStream[core.ConversationOutput]
 }
 
 func newReadwriteModel(
-	view *agent_interact.SingleConversationView,
+	view *conversation_single.SingleConversationView,
 	events core.OutStream[core.ConversationOutput],
 ) *readwriteModel {
 	overlay := &common.SelectionOverlay{Inner: view, NoticeText: "输出已复制"}
@@ -26,7 +26,7 @@ func newReadwriteModel(
 
 func (m *readwriteModel) Init() tea.Cmd {
 	return tea.Batch(
-		agent_interact.WaitAgentEvent(m.events),
+		conversation_single.WaitAgentEvent(m.events),
 		scheduleBgQuery(),
 	)
 }
@@ -39,9 +39,9 @@ func (m *readwriteModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case core.ConversationOutput:
 		_, cmd := m.overlay.Update(msg)
-		return m, tea.Batch(cmd, agent_interact.WaitAgentEvent(m.events))
+		return m, tea.Batch(cmd, conversation_single.WaitAgentEvent(m.events))
 
-	case agent_interact.AgentStreamClosedMsg:
+	case conversation_single.AgentStreamClosedMsg:
 		return m, tea.Quit
 
 	case tea.BackgroundColorMsg:

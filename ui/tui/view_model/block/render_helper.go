@@ -14,24 +14,24 @@ type BlockRenderHelper struct {
 	*common.StreamColumn
 }
 
-func NewBlockRenderHelper(block *Block) *BlockRenderHelper {
-	sections := collectTurnSections(block.TurnData)
-	visualStates := increaseSectionVisualStates(sections, block.SectionVisualStates)
+func (b *Block) BuildHelper() *BlockRenderHelper {
+	sections := collectTurnSections(b.TurnData)
+	visualStates := increaseSectionVisualStates(sections, b.SectionVisualStates)
 	activateReasoningIdx := -1
-	if block.phase() == core.TurnPhaseReasoning {
+	if b.Phase() == core.TurnPhaseReasoning {
 		activateReasoningIdx = sections.GetLastReasoning()
 	}
-	visualStates = updateReasoningStates(time.Now(), activateReasoningIdx, visualStates)
-	layout := buildLayout(sections, visualStates, block.Width)
+	applyReasoningTimers(time.Now(), activateReasoningIdx, visualStates)
+	layout := buildLayout(sections, visualStates, b.Width)
 	return &BlockRenderHelper{
 		visualStates: visualStates,
 		StreamColumn: layout,
 	}
 }
 
-func (b *Block) RetrieveVisualState(helper *BlockRenderHelper) {
-	b.Width = helper.Width
-	b.SectionVisualStates = helper.visualStates
+func (h *BlockRenderHelper) WriteBack(b *Block) {
+	b.Width = h.Width
+	b.SectionVisualStates = h.visualStates
 }
 
 func buildLayout(sections blockSections, visualStates []SectionVisualState, width int) *common.StreamColumn {

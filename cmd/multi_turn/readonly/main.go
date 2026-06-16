@@ -9,7 +9,7 @@ import (
 	"mini_agent/core"
 	"mini_agent/providers/anthropic"
 	"mini_agent/ui/tui/common"
-	"mini_agent/ui/tui/view_model/agent_interact"
+	"mini_agent/ui/tui/view_model/conversation_single"
 
 	tea "charm.land/bubbletea/v2"
 )
@@ -64,7 +64,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	singleView := agent_interact.NewSingleReadOnly()
+	singleView := conversation_single.NewSingleReadOnly()
 	model := newReadonlyModel(singleView, stream, false)
 
 	prog := tea.NewProgram(&common.ModelWithAnimate[*readonlyModel]{Inner: model})

@@ -22,16 +22,16 @@ func TestStatusBarAnimationUsesCommonTick(t *testing.T) {
 	if changed || cmd != nil {
 		t.Fatal("animation tick should return no further commands")
 	}
-	if s.spinner != 1 {
-		t.Fatalf("spinner after tick = %d, want 1", s.spinner)
+	if s.spinner.Frame != 1 {
+		t.Fatalf("spinner after tick = %d, want 1", s.spinner.Frame)
 	}
 
 	changed, cmd = s.Update(common.AnimationTickMsg(time.Now()))
 	if changed || cmd != nil {
 		t.Fatal("animation tick should return no further commands")
 	}
-	if s.spinner != 2 {
-		t.Fatalf("spinner after second tick = %d, want 2", s.spinner)
+	if s.spinner.Frame != 2 {
+		t.Fatalf("spinner after second tick = %d, want 2", s.spinner.Frame)
 	}
 }
 

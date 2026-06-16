@@ -3,20 +3,20 @@ package main
 import (
 	"mini_agent/core"
 	"mini_agent/ui/tui/common"
-	"mini_agent/ui/tui/view_model/agent_interact"
+	"mini_agent/ui/tui/view_model/conversation_single"
 
 	tea "charm.land/bubbletea/v2"
 )
 
 type readonlyModel struct {
-	view      *agent_interact.SingleConversationView
+	view      *conversation_single.SingleConversationView
 	overlay   *common.SelectionOverlay
 	events    core.OutStream[core.ConversationOutput]
 	exitAtEnd bool
 }
 
 func newReadonlyModel(
-	view *agent_interact.SingleConversationView,
+	view *conversation_single.SingleConversationView,
 	events core.OutStream[core.ConversationOutput],
 	exitAtEnd bool,
 ) *readonlyModel {
@@ -25,7 +25,7 @@ func newReadonlyModel(
 }
 
 func (m *readonlyModel) Init() tea.Cmd {
-	return agent_interact.WaitAgentEvent(m.events)
+	return conversation_single.WaitAgentEvent(m.events)
 }
 
 func (m *readonlyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -33,12 +33,12 @@ func (m *readonlyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case core.ConversationOutput:
 		_, cmd := m.overlay.Update(msg)
-		if m.exitAtEnd && agent_interact.IsDoneEvent(msg) {
+		if m.exitAtEnd && conversation_single.IsDoneEvent(msg) {
 			return m, tea.Batch(cmd, tea.Quit)
 		}
-		return m, tea.Batch(cmd, agent_interact.WaitAgentEvent(m.events))
+		return m, tea.Batch(cmd, conversation_single.WaitAgentEvent(m.events))
 
-	case agent_interact.AgentStreamClosedMsg:
+	case conversation_single.AgentStreamClosedMsg:
 		return m, tea.Quit
 
 	case tea.BackgroundColorMsg:

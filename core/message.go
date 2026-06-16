@@ -191,16 +191,16 @@ type ProviderTransparentMessage interface {
 }
 
 // TextMsg is a plain text message with a role: system or user.
-type TrasnparentTextMsg struct {
+type TransparentTextMsg struct {
 	RoleName string // "system" or "user"
 	Content  string
 }
 
-func (m TrasnparentTextMsg) Role() string { return m.RoleName }
+func (m TransparentTextMsg) Role() string { return m.RoleName }
 
-func (m TrasnparentTextMsg) Clone() Message { return m }
+func (m TransparentTextMsg) Clone() Message { return m }
 
-func (m TrasnparentTextMsg) Hash() uint64 {
+func (m TransparentTextMsg) Hash() uint64 {
 	h := fnv.New64a()
 	h.Write([]byte(m.RoleName))
 	h.Write([]byte{0})
@@ -209,8 +209,8 @@ func (m TrasnparentTextMsg) Hash() uint64 {
 }
 
 // String returns a debug-friendly single-line representation.
-func (m TrasnparentTextMsg) String() string {
+func (m TransparentTextMsg) String() string {
 	return strings.TrimRight(fmt.Sprintf("[%s]: %s", m.RoleName, m.Content), "\n\r\t")
 }
 
-func (m TrasnparentTextMsg) ProviderTransparentMessage() {}
+func (m TransparentTextMsg) ProviderTransparentMessage() {}

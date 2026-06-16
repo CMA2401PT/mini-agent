@@ -197,9 +197,9 @@ func TestBlockRendersTransparentMetadataAtBottom(t *testing.T) {
 	block := NewBlock(80)
 	block.Update(TurnDataMsg{Turn: core.Turn{
 		core.TextMsg{RoleName: "user", Content: "hello"},
-		core.TrasnparentTextMsg{RoleName: "ProviderName", Content: "deepseek-v4-pro (high)"},
+		core.TransparentTextMsg{RoleName: "ProviderName", Content: "deepseek-v4-pro (high)"},
 		core.AssistantMsg{Content: "answer"},
-		core.TrasnparentTextMsg{RoleName: "EnvName", Content: "build"},
+		core.TransparentTextMsg{RoleName: "EnvName", Content: "build"},
 	}})
 
 	got := strings.TrimSpace(ansi.Strip(block.Render()))
@@ -262,8 +262,8 @@ func TestBlockReasoningAnimationOnlyWhileReasoning(t *testing.T) {
 	if state == nil {
 		t.Fatal("expected reasoning visual state")
 	}
-	if state.Spinner != 1 {
-		t.Fatalf("spinner = %d, want 1", state.Spinner)
+	if state.Spinner.Frame != 1 {
+		t.Fatalf("spinner = %d, want 1", state.Spinner.Frame)
 	}
 
 	changed, cmd = block.SetComplete()
@@ -279,8 +279,8 @@ func TestBlockReasoningAnimationOnlyWhileReasoning(t *testing.T) {
 	if changed || cmd != nil {
 		t.Fatal("completed block should not tick")
 	}
-	if state.Spinner != 1 {
-		t.Fatalf("completed spinner changed to %d", state.Spinner)
+	if state.Spinner.Frame != 1 {
+		t.Fatalf("completed spinner changed to %d", state.Spinner.Frame)
 	}
 	if !state.EndedAt.Equal(endedAt) {
 		t.Fatal("completed reasoning EndedAt should remain stable")

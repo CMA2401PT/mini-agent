@@ -4,13 +4,13 @@ import (
 	"mini_agent/agent/conversation/swarm"
 	"mini_agent/core"
 	"mini_agent/ui/tui/common"
-	"mini_agent/ui/tui/view_model/multi_conversation"
+	"mini_agent/ui/tui/view_model/conversation_multi"
 
 	tea "charm.land/bubbletea/v2"
 )
 
 type MultiConversationModel struct {
-	widget    *multi_conversation.MultiConversationWidget
+	widget    *conversation_multi.MultiConversationWidget
 	overlay   *common.SelectionOverlay
 	inputChan core.OutStream[swarm.TaggedConversationOutput]
 }
@@ -18,10 +18,10 @@ type MultiConversationModel struct {
 type SwarmClosedMsg struct{}
 
 func NewModel(
-	onInteract func(multi_conversation.TaggedUserInteract),
+	onInteract func(conversation_multi.TaggedUserInteract),
 	inputChan core.OutStream[swarm.TaggedConversationOutput],
 ) *MultiConversationModel {
-	w := multi_conversation.NewMultiConversationWidget(onInteract)
+	w := conversation_multi.NewMultiConversationWidget(onInteract)
 	overlay := &common.SelectionOverlay{Inner: w, NoticeText: "输出已复制"}
 	m := &MultiConversationModel{
 		widget:    w,

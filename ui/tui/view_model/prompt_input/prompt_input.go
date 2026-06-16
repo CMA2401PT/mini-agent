@@ -64,7 +64,7 @@ func (p *PromptInput) Update(msg tea.Msg) (bool, tea.Cmd) {
 
 func (p *PromptInput) consumeKeyNotify(event core.KeyNotify) {
 	switch event.(type) {
-	case core.KeyNotifyWaitiningPrompt:
+	case core.KeyNotifyWaitingPrompt:
 		p.accepting = true
 	case core.KeyNotifyDone:
 		p.accepting = false

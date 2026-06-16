@@ -105,7 +105,7 @@ func (h *plainHandle) run(ctx context.Context, out chan<- core.ConversationOutpu
 
 		if empty {
 			out <- core.ConversationOutput{
-				BeforeEvent: core.KeyNotifyWaitiningPrompt{},
+				BeforeEvent: core.KeyNotifyWaitingPrompt{},
 			}
 			select {
 			case <-h.wakeup:
@@ -153,11 +153,11 @@ func (h *plainHandle) run(ctx context.Context, out chan<- core.ConversationOutpu
 			out <- core.ConversationOutput{
 				SyncPrimitives: core.SyncPrimitiveAppendMessages{
 					Messages: append(msgs,
-						core.TrasnparentTextMsg{
+						core.TransparentTextMsg{
 							RoleName: "ProviderName",
 							Content:  p.Name(),
 						},
-						core.TrasnparentTextMsg{
+						core.TransparentTextMsg{
 							RoleName: "EnvName",
 							Content:  t.Name(),
 						},
