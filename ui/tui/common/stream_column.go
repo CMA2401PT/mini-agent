@@ -50,9 +50,9 @@ func (c *StreamColumn) Render() string {
 		if element.Widget == nil {
 			continue
 		}
-		rows = append(rows, fitBlock(element.Widget.Render(), c.Width, element.WidgetCurrentHeight))
+		rows = append(rows, FitBlock(element.Widget.Render(), c.Width, element.WidgetCurrentHeight))
 	}
-	return fitBlock(strings.Join(rows, "\n"), c.Width, c.Height)
+	return FitBlock(strings.Join(rows, "\n"), c.Width, c.Height)
 }
 
 func (c *StreamColumn) Update(msg tea.Msg) (bool, tea.Cmd) {
@@ -78,14 +78,14 @@ func (c *StreamColumn) Focus() tea.Cmd {
 	if c.focused < 0 || c.focused >= len(c.Elements) {
 		return nil
 	}
-	return focusWidget(c.Elements[c.focused].Widget)
+	return Focus(c.Elements[c.focused].Widget)
 }
 
 func (c *StreamColumn) Blur() {
 	if c.focused < 0 || c.focused >= len(c.Elements) {
 		return
 	}
-	blurWidget(c.Elements[c.focused].Widget)
+	Blur(c.Elements[c.focused].Widget)
 }
 
 func (c *StreamColumn) FocusChild(idx int) tea.Cmd {
@@ -151,7 +151,7 @@ func (c *StreamColumn) handleMouse(msg tea.MouseClickMsg) (bool, tea.Cmd) {
 	if c.focused != idx {
 		cmds = append(cmds, c.switchFocus(idx))
 	}
-	childChanged, childCmd := c.Elements[idx].Widget.Update(OffsetMsg(msg, 0, offsetY))
+	childChanged, childCmd := c.Elements[idx].Widget.Update(OffsetMouseMsg(msg, 0, offsetY))
 	cmds = append(cmds, childCmd)
 	return c.relayoutAfterChildChange(childChanged, cmds...)
 }
@@ -162,14 +162,14 @@ func (c *StreamColumn) dispatchMouse(msg tea.Msg) (bool, tea.Cmd) {
 	if idx < 0 {
 		return false, nil
 	}
-	childChanged, cmd := c.Elements[idx].Widget.Update(OffsetMsg(msg, 0, offsetY))
+	childChanged, cmd := c.Elements[idx].Widget.Update(OffsetMouseMsg(msg, 0, offsetY))
 	return c.relayoutAfterChildChange(childChanged, cmd)
 }
 
 func (c *StreamColumn) dispatchMouseToFocusedOrPosition(msg tea.Msg) (bool, tea.Cmd) {
 	if c.focused >= 0 && c.focused < len(c.Elements) {
 		offsetY := c.elementOffsetY(c.focused)
-		childChanged, cmd := c.Elements[c.focused].Widget.Update(OffsetMsg(msg, 0, offsetY))
+		childChanged, cmd := c.Elements[c.focused].Widget.Update(OffsetMouseMsg(msg, 0, offsetY))
 		return c.relayoutAfterChildChange(childChanged, cmd)
 	}
 	return c.dispatchMouse(msg)
@@ -236,10 +236,10 @@ func (c *StreamColumn) switchFocus(idx int) tea.Cmd {
 		return nil
 	}
 	if c.focused >= 0 && c.focused < len(c.Elements) {
-		blurWidget(c.Elements[c.focused].Widget)
+		Blur(c.Elements[c.focused].Widget)
 	}
 	c.focused = idx
-	return focusWidget(c.Elements[idx].Widget)
+	return Focus(c.Elements[idx].Widget)
 }
 
 func defaultColumnHeights(totalHeight int, measurements []StreamWidgetHeight) []int {

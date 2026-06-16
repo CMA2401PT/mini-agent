@@ -6,12 +6,8 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-func fitBlock(in string, width, height int) string {
-	return strings.Join(fitLines(textLines(in), width, height), "\n")
-}
-
 func FitBlock(in string, width, height int) string {
-	return fitBlock(in, width, height)
+	return strings.Join(fitLines(textLines(in), width, height), "\n")
 }
 
 func fitLines(lines []string, width, height int) []string {

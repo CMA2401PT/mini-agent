@@ -92,7 +92,7 @@ func (f *FoldableTextBlock) Render() string {
 	text := f.displayText(f.Width)
 	w := max(1, f.Width)
 	styled := f.Style.Width(w).Render(text)
-	return fitBlock(styled, w, f.Height)
+	return FitBlock(styled, w, f.Height)
 }
 
 func (f *FoldableTextBlock) Update(msg tea.Msg) (bool, tea.Cmd) {

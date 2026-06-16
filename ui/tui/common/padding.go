@@ -37,7 +37,7 @@ func (b *BlockWithPaddingAndMargin) Measure(width int) StreamWidgetHeight {
 func (b *BlockWithPaddingAndMargin) Render() string {
 	width, height := max(0, b.Width), max(0, b.Height)
 	if width == 0 || height == 0 {
-		return fitBlock("", width, height)
+		return FitBlock("", width, height)
 	}
 
 	b.computeChildRect(width, height)
@@ -64,13 +64,13 @@ func (b *BlockWithPaddingAndMargin) Render() string {
 	}
 
 	if b.Child != nil && b.childWidth > 0 && b.childHeight > 0 {
-		childBlock := fitBlock(b.Child.Render(), b.childWidth, b.childHeight)
+		childBlock := FitBlock(b.Child.Render(), b.childWidth, b.childHeight)
 		for yOff, line := range strings.Split(childBlock, "\n") {
 			row := b.childY + yOff
 			if row < 0 || row >= height {
 				continue
 			}
-			rows[row] = replaceSegment(rows[row], b.childX, b.childWidth, b.Box.Style.Render(fitBlock(line, b.childWidth, 1)))
+			rows[row] = replaceSegment(rows[row], b.childX, b.childWidth, b.Box.Style.Render(FitBlock(line, b.childWidth, 1)))
 		}
 	}
 
@@ -93,18 +93,18 @@ func (b *BlockWithPaddingAndMargin) Update(msg tea.Msg) (bool, tea.Cmd) {
 		return b.Child.Update(tea.WindowSizeMsg{Width: b.childWidth, Height: b.childHeight})
 	case tea.MouseClickMsg:
 		if b.Child != nil && b.insideChild(msg.X, msg.Y) {
-			return b.Child.Update(OffsetMsg(msg, b.childX, b.childY))
+			return b.Child.Update(OffsetMouseMsg(msg, b.childX, b.childY))
 		}
 	case tea.MouseMotionMsg:
 		if b.Child != nil && b.insideChild(msg.X, msg.Y) {
-			return b.Child.Update(OffsetMsg(msg, b.childX, b.childY))
+			return b.Child.Update(OffsetMouseMsg(msg, b.childX, b.childY))
 		}
 	case tea.MouseReleaseMsg:
 		if msg.Button != tea.MouseLeft || !b.insideClickable(msg.X, msg.Y) {
 			return false, nil
 		}
 		if b.Child != nil && b.insideChild(msg.X, msg.Y) {
-			childChanged, cmd := b.Child.Update(OffsetMsg(msg, b.childX, b.childY))
+			childChanged, cmd := b.Child.Update(OffsetMouseMsg(msg, b.childX, b.childY))
 			if childChanged || cmd != nil {
 				return childChanged, cmd
 			}
@@ -128,12 +128,12 @@ func (b *BlockWithPaddingAndMargin) Focus() tea.Cmd {
 	if b.Child == nil {
 		return nil
 	}
-	return focusWidget(b.Child)
+	return Focus(b.Child)
 }
 
 func (b *BlockWithPaddingAndMargin) Blur() {
 	if b.Child != nil {
-		blurWidget(b.Child)
+		Blur(b.Child)
 	}
 }
 
@@ -184,7 +184,7 @@ func repeatCell(cell string, width int) string {
 	for out.Len() < width {
 		out.WriteString(cell)
 	}
-	return fitBlock(out.String(), width, 1)
+	return FitBlock(out.String(), width, 1)
 }
 
 func replaceSegment(line string, x, width int, segment string) string {
@@ -203,7 +203,7 @@ func replaceSegment(line string, x, width int, segment string) string {
 	}
 	left := ansi.Cut(line, 0, x)
 	right := ansi.Cut(line, x+width, lineWidth)
-	return left + fitBlock(segment, width, 1) + right
+	return left + FitBlock(segment, width, 1) + right
 }
 
 func normalizeInsets(in Insets) Insets {

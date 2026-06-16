@@ -73,7 +73,7 @@ func (t *TextareaWidget) Blur() {
 func (t *TextareaWidget) Render() string {
 	width := max(0, t.width)
 	height := max(0, t.height)
-	return fitBlock(t.Textarea.View(), width, height)
+	return FitBlock(t.Textarea.View(), width, height)
 }
 
 func (t *TextareaWidget) Update(msg tea.Msg) (bool, tea.Cmd) {

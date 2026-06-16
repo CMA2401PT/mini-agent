@@ -23,7 +23,7 @@ func (w *SpinnerWidget) Measure(width int) StreamWidgetHeight {
 }
 
 func (w *SpinnerWidget) Render() string {
-	return fitBlock(w.View(), w.width, w.height)
+	return FitBlock(w.View(), w.width, w.height)
 }
 
 func (w *SpinnerWidget) Update(msg tea.Msg) (bool, tea.Cmd) {

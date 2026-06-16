@@ -51,7 +51,7 @@ func (r *ColumnRelocatorRoot) Render() string {
 		if column.Child == nil {
 			continue
 		}
-		block := fitBlock(column.Child.Render(), column.ChildWidth, column.ChildHeight)
+		block := FitBlock(column.Child.Render(), column.ChildWidth, column.ChildHeight)
 		for y, line := range strings.Split(block, "\n") {
 			cy := column.ChildOffsetY + y
 			if cy < 0 || cy >= len(rows) {
@@ -62,11 +62,11 @@ func (r *ColumnRelocatorRoot) Render() string {
 			}
 			left := ansi.Cut(rows[cy], 0, column.ChildOffsetX)
 			right := ansi.Cut(rows[cy], column.ChildOffsetX+column.ChildWidth, r.Width)
-			rows[cy] = left + fitBlock(line, column.ChildWidth, 1) + right
+			rows[cy] = left + FitBlock(line, column.ChildWidth, 1) + right
 		}
 	}
 
-	return fitBlock(strings.Join(rows, "\n"), r.Width, r.Height)
+	return FitBlock(strings.Join(rows, "\n"), r.Width, r.Height)
 }
 
 func (r *ColumnRelocatorRoot) Update(msg tea.Msg) (bool, tea.Cmd) {
@@ -92,14 +92,14 @@ func (r *ColumnRelocatorRoot) Focus() tea.Cmd {
 	if r.focused < 0 || r.focused >= len(r.Columns) {
 		return nil
 	}
-	return focusWidget(r.Columns[r.focused].Child)
+	return Focus(r.Columns[r.focused].Child)
 }
 
 func (r *ColumnRelocatorRoot) Blur() {
 	if r.focused < 0 || r.focused >= len(r.Columns) {
 		return
 	}
-	blurWidget(r.Columns[r.focused].Child)
+	Blur(r.Columns[r.focused].Child)
 }
 
 func (r *ColumnRelocatorRoot) resize(width, height int) (bool, tea.Cmd) {
@@ -185,7 +185,7 @@ func (r *ColumnRelocatorRoot) handleMouse(msg tea.MouseClickMsg) (bool, tea.Cmd)
 	if r.focused != idx {
 		cmds = append(cmds, r.switchFocus(idx))
 	}
-	childChanged, childCmd := r.Columns[idx].Child.Update(OffsetMsg(msg, r.Columns[idx].ChildOffsetX, r.Columns[idx].ChildOffsetY))
+	childChanged, childCmd := r.Columns[idx].Child.Update(OffsetMouseMsg(msg, r.Columns[idx].ChildOffsetX, r.Columns[idx].ChildOffsetY))
 	cmds = append(cmds, childCmd)
 	return r.relayoutAfterChildChange(childChanged, cmds...)
 }
@@ -195,7 +195,7 @@ func (r *ColumnRelocatorRoot) dispatchMouse(msg tea.Msg) (bool, tea.Cmd) {
 	if idx < 0 {
 		return false, nil
 	}
-	childChanged, cmd := r.Columns[idx].Child.Update(OffsetMsg(msg, r.Columns[idx].ChildOffsetX, r.Columns[idx].ChildOffsetY))
+	childChanged, cmd := r.Columns[idx].Child.Update(OffsetMouseMsg(msg, r.Columns[idx].ChildOffsetX, r.Columns[idx].ChildOffsetY))
 	return r.relayoutAfterChildChange(childChanged, cmd)
 }
 
@@ -248,10 +248,10 @@ func (r *ColumnRelocatorRoot) switchFocus(idx int) tea.Cmd {
 		return nil
 	}
 	if r.focused >= 0 && r.focused < len(r.Columns) {
-		blurWidget(r.Columns[r.focused].Child)
+		Blur(r.Columns[r.focused].Child)
 	}
 	r.focused = idx
-	return focusWidget(r.Columns[idx].Child)
+	return Focus(r.Columns[idx].Child)
 }
 
 func InsetWidth(offset int) ColumnRelocatorWidthFunc {

@@ -16,7 +16,7 @@ func (s *VerticalSpacer) Measure(width int) StreamWidgetHeight {
 }
 
 func (s *VerticalSpacer) Render() string {
-	return fitBlock("", s.Width, max(0, s.NRows))
+	return FitBlock("", s.Width, max(0, s.NRows))
 }
 
 func (s *VerticalSpacer) Update(msg tea.Msg) (bool, tea.Cmd) {
@@ -36,7 +36,7 @@ func (s *VerticalSpring) Measure(width int) StreamWidgetHeight {
 }
 
 func (s *VerticalSpring) Render() string {
-	return fitBlock("", s.Width, s.Height)
+	return FitBlock("", s.Width, s.Height)
 }
 
 func (s *VerticalSpring) Update(msg tea.Msg) (bool, tea.Cmd) {

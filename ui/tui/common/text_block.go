@@ -33,7 +33,7 @@ func (b *TextBlock) Measure(width int) StreamWidgetHeight {
 }
 
 func (b *TextBlock) Render() string {
-	return fitBlock(b.renderForWidth(b.Width), b.Width, b.Height)
+	return FitBlock(b.renderForWidth(b.Width), b.Width, b.Height)
 }
 
 func (b *TextBlock) Update(msg tea.Msg) (bool, tea.Cmd) {

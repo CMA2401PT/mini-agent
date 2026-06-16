@@ -51,7 +51,7 @@ func (r *clickRecorder) Measure(width int) StreamWidgetHeight {
 }
 
 func (r *clickRecorder) Render() string {
-	return fitBlock("x", r.width, r.height)
+	return FitBlock("x", r.width, r.height)
 }
 
 func (r *clickRecorder) Update(msg tea.Msg) (bool, tea.Cmd) {
