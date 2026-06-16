@@ -96,7 +96,7 @@ func NewSingleReadWrite(onUserInteract func(UserInteract)) *SingleConversationVi
 		return nil
 	}
 	sbar.OnInterrupt = func() tea.Cmd {
-		v.onUserInteract(UserQuit{})
+		v.onUserInteract(UserInterrupt{})
 		return nil
 	}
 
