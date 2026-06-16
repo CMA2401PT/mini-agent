@@ -5,6 +5,7 @@ import (
 	"mini_agent/core"
 	"mini_agent/ui/tui/common"
 	"mini_agent/ui/tui/view_model/conversation_multi"
+	"mini_agent/ui/tui/view_model/conversation_single"
 
 	tea "charm.land/bubbletea/v2"
 )
@@ -21,7 +22,12 @@ func NewModel(
 	onInteract func(conversation_multi.TaggedUserInteract),
 	inputChan core.OutStream[swarm.TaggedConversationOutput],
 ) *MultiConversationModel {
-	w := conversation_multi.NewMultiConversationWidget(onInteract)
+	w := conversation_multi.NewMultiConversationWidget(onInteract, func(onUserInteract func(conversation_single.UserInteract)) conversation_multi.SingleViewWidget {
+		if onUserInteract == nil {
+			return conversation_single.NewSingleReadOnly()
+		}
+		return conversation_single.NewSingleReadWrite(onUserInteract)
+	})
 	overlay := &common.SelectionOverlay{Inner: w, NoticeText: "输出已复制"}
 	m := &MultiConversationModel{
 		widget:    w,

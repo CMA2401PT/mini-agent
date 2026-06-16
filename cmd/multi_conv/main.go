@@ -59,7 +59,7 @@ func main() {
 	model := NewModel(func(tui conversation_multi.TaggedUserInteract) {
 		interactStream <- tui
 	}, s.Output())
-	tabIdx := model.widget.CreateTab(convID, "开始")
+	tabIdx := model.widget.CreateTab(convID, "开始", false)
 	// model.widget.SwitchTab(tabIdx)
 	convIdx := 0
 	prog := tea.NewProgram(&common.ModelWithAnimate[*MultiConversationModel]{Inner: model})
@@ -82,7 +82,7 @@ func main() {
 						os.Exit(1)
 					}
 					convIdx += 1
-					tabIdx := model.widget.CreateTab(convID, fmt.Sprintf("%d", convIdx))
+					tabIdx := model.widget.CreateTab(convID, fmt.Sprintf("%d", convIdx), false)
 					prog.Send(SwitchTab(tabIdx))
 					continue
 				}

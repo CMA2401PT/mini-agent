@@ -14,17 +14,27 @@ type TaggedUserInteract struct {
 	UserInteract conversation_single.UserInteract
 }
 
+type SingleViewWidget interface {
+	common.StreamWidget
+	common.CanFocus
+	Phase() core.TurnPhase
+}
+
 type MultiConversationWidget struct {
 	*common.StreamColumn
 	tabBar     *TabBar
-	tabView    *common.TabView[*conversation_single.SingleConversationView]
+	tabView    *common.TabView[SingleViewWidget]
 	onInteract func(TaggedUserInteract)
 	convID     map[string]int
+	createView func(onUserInteract func(conversation_single.UserInteract)) SingleViewWidget
 }
 
-func NewMultiConversationWidget(onInteract func(TaggedUserInteract)) *MultiConversationWidget {
+func NewMultiConversationWidget(
+	onInteract func(TaggedUserInteract),
+	createView func(onUserInteract func(conversation_single.UserInteract)) SingleViewWidget,
+) *MultiConversationWidget {
 	tabBar := NewTabBar()
-	tabView := common.NewTabView[*conversation_single.SingleConversationView]()
+	tabView := common.NewTabView[SingleViewWidget]()
 	mainLayout := common.NewStreamColumn(
 		tabBar,
 		tabView,
@@ -36,6 +46,7 @@ func NewMultiConversationWidget(onInteract func(TaggedUserInteract)) *MultiConve
 		tabView:      tabView,
 		onInteract:   onInteract,
 		convID:       make(map[string]int),
+		createView:   createView,
 	}
 
 	tabBar.OnSwitch = w.SwitchTab
@@ -69,14 +80,20 @@ func (w *MultiConversationWidget) handleConversationEvent(ev swarm.TaggedConvers
 	return changed, cmd
 }
 
-func (w *MultiConversationWidget) CreateTab(convID string, title string) int {
-	view := conversation_single.NewSingleReadWrite(func(ui conversation_single.UserInteract) {
-		ie := TaggedUserInteract{
-			ConvID:       convID,
-			UserInteract: ui,
-		}
-		w.onInteract(ie)
-	})
+func (w *MultiConversationWidget) CreateTab(convID string, title string, readOnly bool) int {
+	var view SingleViewWidget
+
+	if readOnly {
+		view = w.createView(nil)
+	} else {
+		view = w.createView(func(ui conversation_single.UserInteract) {
+			ie := TaggedUserInteract{
+				ConvID:       convID,
+				UserInteract: ui,
+			}
+			w.onInteract(ie)
+		})
+	}
 
 	if w.tabView.Width > 0 && w.tabView.Height > 0 {
 		view.Update(tea.WindowSizeMsg{Width: w.tabView.Width, Height: w.tabView.Height})
