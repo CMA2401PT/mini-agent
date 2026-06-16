@@ -3,27 +3,22 @@ package prompt_input
 import (
 	"strings"
 
-	"mini_agent/core"
 	"mini_agent/ui/tui/common"
 
 	tea "charm.land/bubbletea/v2"
 )
 
 type PromptInput struct {
-	textarea *common.TextareaWidget
-	box      *common.BlockWithPaddingAndMargin
-
-	accepting bool
-
+	textarea     *common.TextareaWidget
+	box          *common.BlockWithPaddingAndMargin
 	OnEnter      func(prompt string) tea.Cmd
 	OnEmptyEnter func() tea.Cmd
 }
 
 func NewPromptInput(textarea *common.TextareaWidget, box *common.BlockWithPaddingAndMargin) *PromptInput {
 	return &PromptInput{
-		textarea:  textarea,
-		box:       box,
-		accepting: true,
+		textarea: textarea,
+		box:      box,
 	}
 }
 
@@ -45,10 +40,6 @@ func (p *PromptInput) Blur() {
 
 func (p *PromptInput) Update(msg tea.Msg) (bool, tea.Cmd) {
 	switch msg := msg.(type) {
-	case core.ConversationOutput:
-		p.consumeKeyNotify(msg.BeforeEvent)
-		p.consumeKeyNotify(msg.AfterEvent)
-		return false, nil
 	case tea.BackgroundColorMsg:
 		theme := common.ActiveTheme()
 		p.box.Box.Style = theme.CalloutStyle()
@@ -62,21 +53,7 @@ func (p *PromptInput) Update(msg tea.Msg) (bool, tea.Cmd) {
 	return p.box.Update(msg)
 }
 
-func (p *PromptInput) consumeKeyNotify(event core.KeyNotify) {
-	switch event.(type) {
-	case core.KeyNotifyWaitingPrompt:
-		p.accepting = true
-	case core.KeyNotifyDone:
-		p.accepting = false
-	case core.KeyNotifyRequestSent, core.KeyNotifyReasoningStart, core.KeyNotifyOutputStart, core.KeyNotifyToolUseStart:
-		p.accepting = false
-	}
-}
-
 func (p *PromptInput) submit() (bool, tea.Cmd) {
-	if !p.accepting {
-		return false, nil
-	}
 	input := strings.TrimSpace(p.textarea.Value())
 	if input == "" {
 		if p.OnEmptyEnter == nil {
@@ -84,7 +61,6 @@ func (p *PromptInput) submit() (bool, tea.Cmd) {
 		}
 		return false, p.OnEmptyEnter()
 	}
-	p.accepting = false
 	changed := p.textarea.Reset()
 	var cmd tea.Cmd
 	if p.OnEnter != nil {
